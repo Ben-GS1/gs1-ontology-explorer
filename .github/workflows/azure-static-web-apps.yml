@@ -1,0 +1,63 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+
+jobs:
+  build_and_deploy:
+    if: github.event_name == 'push' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    name: Build and deploy
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Type-check and build
+        run: npm run build
+        env:
+          VITE_DEFINITIONS_BASE_URL: ${{ vars.DEFINITIONS_BASE_URL }}
+          VITE_MANIFEST_PATH: ${{ vars.MANIFEST_PATH }}
+          VITE_RESOLVER_HOST: ${{ vars.RESOLVER_HOST }}
+
+      - name: Install API dependencies
+        run: npm ci
+        working-directory: api
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/"
+          api_location: "api"
+          output_location: "dist"
+        env:
+          DEFINITIONS_BASE_URL: ${{ vars.DEFINITIONS_BASE_URL }}
+          MANIFEST_PATH: ${{ vars.MANIFEST_PATH }}
+
+  close_pull_request:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close pull request job
+    steps:
+      - name: Close pull request
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: "close"

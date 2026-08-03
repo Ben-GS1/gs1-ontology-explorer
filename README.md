@@ -19,7 +19,7 @@ by itself do two things the brief asks for:
 
 1. **HTTP content negotiation** (serve HTML to browsers, JSON-LD/Turtle to
    Linked Data clients from the *same* URL) — negotiation has to happen
-   before any HTML is sent, which means at the edge/server, not in
+   before any HTML is sent, which means **at the edge/server*, not in
    client-side JavaScript.
 2. **Directory discovery** — GitHub Pages is static file hosting with no
    directory-listing API, so the SPA has no way to ask "what domains and

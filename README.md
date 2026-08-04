@@ -8,7 +8,7 @@ with real HTTP content negotiation.
 
 Stack: React 18 + TypeScript + Vite + Tailwind, React Router, TanStack
 Query, i18next, Fuse.js, deployed to **Azure Static Web Apps** with a
-companion Azure Function for content negotiation.
+companion Azure Function for content negotiation. Tst
 
 ---
 

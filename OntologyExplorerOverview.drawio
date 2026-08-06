@@ -92,6 +92,11 @@
             <mxPoint x="670" y="-145" as="targetPoint" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="h-_cQOWpCgA4G0S0Iczq-1" connectable="0" parent="cO-ocxVFCf9u37VRgIKg-28" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;p data-local-id=&quot;f97974d742a4&quot; data-prosemirror-content-type=&quot;node&quot; data-prosemirror-node-name=&quot;paragraph&quot; data-prosemirror-node-block=&quot;true&quot; data-pm-slice=&quot;1 1 [&amp;quot;bulletList&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;62834010-b212-4eca-9063-d2962eab4522&amp;quot;},&amp;quot;listItem&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;8b7be1ba-a152-4299-b205-d34393648bae&amp;quot;},&amp;quot;bulletList&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;aaf72812-0166-4cd8-8c68-c474dea26977&amp;quot;},&amp;quot;listItem&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;9cfd9492-64fd-4a1e-8593-6a0d0694fb88&amp;quot;}]&quot;&gt;Push auf stage löst die Stage-Deploy‑Action aus&lt;/p&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.1155" as="geometry">
+            <mxPoint x="119" y="-2" as="offset" />
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

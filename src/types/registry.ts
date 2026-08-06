@@ -43,7 +43,8 @@ export interface DomainEntry {
   /** Fallback human label if no i18n resource is loaded yet. */
   label: string;
   description?: string;
-  sectorCode: string;
+  /** Omitted for cross-sector domains published under a "shared" location. */
+  sectorCode?: string;
   artifacts: Artifact[];
 }
 

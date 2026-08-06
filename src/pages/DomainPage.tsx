@@ -5,17 +5,17 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { sectorByCode } from "@/config/sectors";
 import { useDomain, useDomainMetadata, useSectors } from "@/hooks/useRegistry";
-import { loadDomainTerms } from "@/lib/registryClient";
+import { deprecatedVersionTags, loadDomainTerms, versionTagOf } from "@/lib/registryClient";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ArtifactList } from "@/components/ArtifactList";
 import { TermRow } from "@/components/TermRow";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
 import type { Artifact, DomainEntry } from "@/types/registry";
 
-function useDomainTermsForStatus(domain: DomainEntry | undefined, status: Artifact["status"]) {
+function useDomainTermsForStatus(domain: DomainEntry | undefined, status: Artifact["status"], versionTag?: string) {
   return useQuery({
-    queryKey: ["domain-terms", domain?.slug, status],
-    queryFn: () => loadDomainTerms(domain as DomainEntry, status),
+    queryKey: ["domain-terms", domain?.slug, status, versionTag],
+    queryFn: () => loadDomainTerms(domain as DomainEntry, status, versionTag),
     enabled: Boolean(domain),
     staleTime: 5 * 60 * 1000,
   });
@@ -26,11 +26,14 @@ export function DomainPage() {
   const { t } = useTranslation(["common", "sectors", "errors"]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Artifact["status"]>("current");
+  const [versionTag, setVersionTag] = useState<string | undefined>(undefined);
 
   const { data: manifest, isLoading, isError, domain } = useDomain(domainSlug);
   const meta = useDomainMetadata(domain);
   const sectorsQuery = useSectors();
-  const termsQuery = useDomainTermsForStatus(domain, status);
+  const versionTags = domain ? deprecatedVersionTags(domain) : [];
+  const effectiveVersionTag = status === "deprecated" ? versionTag ?? versionTags[0] : undefined;
+  const termsQuery = useDomainTermsForStatus(domain, status, effectiveVersionTag);
 
   const filtered = useMemo(() => {
     const list = termsQuery.data ?? [];
@@ -50,10 +53,15 @@ export function DomainPage() {
     return <ErrorBlock title={t("domainNotFound", { ns: "errors", slug: domainSlug })} />;
   }
 
-  const sector = sectorByCode(sectorsQuery.data ?? [], domain.sectorCode);
-  const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : domain.sectorCode;
-  const hasStaging = domain.artifacts.some((a) => a.status === "staging");
-  const artifactsForStatus = domain.artifacts.filter((a) => a.status === status);
+  const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
+  const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
+  const availableStatuses = (["current", "staging", "deprecated"] as const).filter((s) =>
+    domain.artifacts.some((a) => a.status === s)
+  );
+
+  const artifactsForStatus = domain.artifacts.filter(
+    (a) => a.status === status && (status !== "deprecated" || versionTagOf(a) === effectiveVersionTag)
+  );
   const artifactsToShow = artifactsForStatus.length > 0 ? artifactsForStatus : domain.artifacts;
 
   return (
@@ -88,19 +96,38 @@ export function DomainPage() {
           )}
         </div>
 
-        {hasStaging && (
-          <div className="flex shrink-0 gap-1 rounded border border-ink-100 bg-white p-1 text-xs">
-            {(["current", "staging"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatus(s)}
-                className={`rounded-sm px-2.5 py-1 font-medium ${
-                  status === s ? "bg-ink-900 text-ink-50" : "text-ink-500 hover:bg-ink-50"
-                }`}
+        {availableStatuses.length > 1 && (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <div className="flex gap-1 rounded border border-ink-100 bg-white p-1 text-xs">
+              {availableStatuses.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setStatus(s);
+                    if (s !== "deprecated") setVersionTag(undefined);
+                  }}
+                  className={`rounded-sm px-2.5 py-1 font-medium ${
+                    status === s ? "bg-ink-900 text-ink-50" : "text-ink-500 hover:bg-ink-50"
+                  }`}
+                >
+                  {t(`status.${s}`)}
+                </button>
+              ))}
+            </div>
+            {status === "deprecated" && versionTags.length > 1 && (
+              <select
+                value={effectiveVersionTag}
+                onChange={(e) => setVersionTag(e.target.value)}
+                aria-label="Version"
+                className="rounded border border-ink-100 bg-white px-2 py-1.5 text-xs text-ink-700"
               >
-                {t(`status.${s}`)}
-              </button>
-            ))}
+                {versionTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         )}
       </div>

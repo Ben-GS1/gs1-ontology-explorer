@@ -53,24 +53,26 @@ npm run dev        # http://localhost:5173 — Registry lädt mit den
 
 ## 2. Definitions-Repo vorbereiten (einmalig, im *anderen* Repo)
 
-Im Repo `GS1-Switzerland/WebOntology` (GitHub Pages) müssen zwei Dateien
-veröffentlicht werden, bevor die SPA live sinnvolle Daten zeigt:
+`registry/manifest.jsonld` wird jetzt automatisch bei jedem
+`promote-to-prod`-Lauf erzeugt — siehe
+[`scripts/PROMOTE_TO_PROD.md`](./scripts/PROMOTE_TO_PROD.md) für den
+exakten Patch gegen euren echten Workflow. Manuell bleibt nur:
 
 | Datei | Vorlage in diesem Paket | Zweck |
 |---|---|---|
-| `registry/manifest.jsonld` | `public/sample-manifest.json` + `manifest.schema.json` | Katalog aller Domains/Artefakte/Versionen |
-| `registry/sectors.jsonld` | `public/sample-sectors.json` + `sectors.schema.json` | GS1-Sektoren-Codeliste |
+| `registry/sectors.jsonld` | `public/sample-sectors.json` + `sectors.schema.json` | GS1-Sektoren-Codeliste (ändert sich selten, daher weiterhin handgepflegt) |
 
-Kopiere die `sample-*.json`-Dateien als Startpunkt in das Definitions-Repo
-unter den obigen Pfaden, passe die Domain-Einträge an eure echten
-Artefakt-URLs an, committen, pushen. Das genügt — kein Code-Deploy nötig,
-die SPA liest das live beim nächsten Seitenaufruf.
+Kopiere `public/sample-sectors.json` als Startpunkt in das Definitions-Repo
+unter `registry/sectors.jsonld`, committen, pushen. Das genügt — kein
+Code-Deploy nötig, die SPA liest das live beim nächsten Seitenaufruf.
 
-Kopiere idealerweise auch `manifest.schema.json` und `sectors.schema.json`
-mit ins Definitions-Repo (z.B. neben die jeweilige `.jsonld`-Datei) und
-referenziere sie per `"$schema"`. Dann bekommen Redakteur:innen dort
-Validierung/Autocomplete beim Bearbeiten — diese beiden Dateien werden
-von der SPA selbst nicht ausgeliefert, sie sind reine Vertragsdokumentation.
+Kopiere idealerweise auch `sectors.schema.json` mit ins Definitions-Repo
+(neben `registry/sectors.jsonld`) und referenziere sie per `"$schema"`.
+Dann bekommen Redakteur:innen dort Validierung/Autocomplete beim
+Bearbeiten — diese Datei wird von der SPA selbst nicht ausgeliefert, sie
+ist reine Vertragsdokumentation. `manifest.schema.json` gehört ebenso mit
+ins Definitions-Repo, direkt neben das automatisch generierte
+`registry/manifest.jsonld` — siehe `scripts/PROMOTE_TO_PROD.md`, Schritt 1.
 
 ### 2a. `url` vs. `source` — welche URL kommt wohin?
 
@@ -80,7 +82,7 @@ Dinge bedeuten:
 | Feld | Beispiel | Zweck |
 |---|---|---|
 | `url` | `https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld` | **Öffentlicher, stabiler Identifier.** Das ist die URL, die in `@context`/`@id` anderer Dateien referenziert wird, die in der UI angezeigt/verlinkt wird, und auf die Linked-Data-Clients per Content Negotiation umgeleitet werden. |
-| `source` | `https://gs1-switzerland.github.io/WebOntology/rail/voc/data/gs1RailVoc.jsonld` | **Physischer Speicherort**, von dem die SPA und die Resolver-Function die tatsächlichen Bytes holen. |
+| `source` | `https://gs1-switzerland.github.io/WebOntology/current/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld` | **Physischer Speicherort**, von dem die SPA und die Resolver-Function die tatsächlichen Bytes holen. |
 
 Warum getrennt: `url` ist die "Cool URI" — die Identität der Ressource,
 die sich nie ändern soll, egal wie ihr das Repo intern organisiert.

@@ -8,7 +8,7 @@ with real HTTP content negotiation.
 
 Stack: React 18 + TypeScript + Vite + Tailwind, React Router, TanStack
 Query, i18next, Fuse.js, deployed to **Azure Static Web Apps** with a
-companion Azure Function for content negotiation. Tst
+companion Azure Function for content negotiation.
 
 ---
 
@@ -19,7 +19,7 @@ by itself do two things the brief asks for:
 
 1. **HTTP content negotiation** (serve HTML to browsers, JSON-LD/Turtle to
    Linked Data clients from the *same* URL) — negotiation has to happen
-   before any HTML is sent, which means **at the edge/server**, not in
+   before any HTML is sent, which means at the edge/server, not in
    client-side JavaScript.
 2. **Directory discovery** — GitHub Pages is static file hosting with no
    directory-listing API, so the SPA has no way to ask "what domains and
@@ -70,6 +70,20 @@ See `api/src/functions/resolve.js` for the implementation and
 
 ## 2. The manifest: the one piece of required repo-side work
 
+**Automating this:** [`scripts/generate-manifest.mjs`](./scripts/generate-manifest.mjs)
+scans a published gh-pages checkout — `current/sectors/<sector>/<domain>/...`
+(+ `current/shared/<domain>/...` for cross-sector domains) plus every
+historical `versions/<tag>/...` snapshot — and writes
+`registry/manifest.jsonld`. Built specifically against
+`GS1-Switzerland/WebOntology`'s real `promote-to-prod.yml` and verified
+against its actual, already-published manifest. Every past `versions/<tag>/`
+becomes a `status: "deprecated"` entry with its own permanent, versioned
+URL — this is what makes older versions browsable, per the original brief.
+See [`scripts/PROMOTE_TO_PROD.md`](./scripts/PROMOTE_TO_PROD.md) for the
+exact diff against the real workflow file. Everything below still applies
+if you'd rather hand-maintain the file, or as background for what the
+generator produces.
+
 GitHub Pages cannot be directory-listed, so this app (and any other
 consumer) needs a published **catalog** to discover what exists. Publish
 one JSON-LD/JSON file at:
@@ -98,7 +112,7 @@ be explicit:
 | Field | Example | Meaning |
 |---|---|---|
 | `url` | `https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld` | The stable **public identifier** — what other JSON-LD files' `@context`/`@id` point at, what the UI links to, what content negotiation redirects to. A "Cool URI"; it should never need to change. |
-| `source` | `https://gs1-switzerland.github.io/WebOntology/rail/voc/data/gs1RailVoc.jsonld` | Where the bytes **actually live today**. The SPA's own `fetch()` calls and the resolver Function's redirects use this. Free to change (repo reorg, hosting migration) without breaking any external reference to `url`. |
+| `source` | `https://gs1-switzerland.github.io/WebOntology/current/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld` | Where the bytes **actually live today**. The SPA's own `fetch()` calls and the resolver Function's redirects use this. Free to change (repo reorg, hosting migration) without breaking any external reference to `url`. |
 
 The resolver Function indexes every `artifact.url` from the manifest and
 303-redirects matching requests to the corresponding `source` — so
@@ -135,6 +149,18 @@ of truth — keep it roughly in sync, but it doesn't need to be perfectly
 current.
 
 ---
+
+## 2d. Browsing deprecated versions
+
+When a domain's `artifacts` include `status: "deprecated"` entries (as the
+generator produces — one set per historical `versions/<tag>/`
+snapshot), the domain page (`src/pages/DomainPage.tsx`) shows a status
+toggle (Current / Staging / Deprecated — only the statuses actually
+present) plus, for Deprecated, a version dropdown built from the distinct
+`versions/<tag>` segments found in those artifacts' URLs
+(`deprecatedVersionTags()` / `versionTagOf()` in `src/lib/registryClient.ts`).
+Selecting a version loads and parses only that snapshot's own vocabulary
+files — historical versions are never merged together into one term list.
 
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 

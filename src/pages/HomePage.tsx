@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { useManifest, useSectors } from "@/hooks/useRegistry";
@@ -12,11 +13,13 @@ export function HomePage() {
 
   const domainsBySector = new Map<string, number>();
   manifest.data?.domains.forEach((d) => {
+    if (!d.sectorCode) return;
     domainsBySector.set(d.sectorCode, (domainsBySector.get(d.sectorCode) ?? 0) + 1);
   });
 
   const populated = sectors.filter((s) => (domainsBySector.get(s.codeValue) ?? 0) > 0);
   const empty = sectors.filter((s) => (domainsBySector.get(s.codeValue) ?? 0) === 0);
+  const crossSectorDomains = manifest.data?.domains.filter((d) => !d.sectorCode) ?? [];
 
   return (
     <div>
@@ -58,6 +61,29 @@ export function HomePage() {
                 ))}
               </div>
             </details>
+          )}
+
+          {crossSectorDomains.length > 0 && (
+            <>
+              <h2 className="mb-4 mt-10 font-display text-sm font-semibold uppercase tracking-wide text-ink-400">
+                {t("crossSector.heading")}
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {crossSectorDomains.map((d) => (
+                  <Link
+                    key={d.slug}
+                    to={`/${d.slug}`}
+                    className="group block rounded border border-ink-100 bg-white p-4 shadow-card transition hover:border-signal/50"
+                  >
+                    <h3 className="font-display text-[15px] font-medium text-ink-900 group-hover:text-signal-dim">
+                      {d.label}
+                    </h3>
+                    <p className="term-id mt-0.5 text-xs text-ink-400">/{d.slug}</p>
+                    {d.description && <p className="mt-1.5 text-[13px] text-ink-500">{d.description}</p>}
+                  </Link>
+                ))}
+              </div>
+            </>
           )}
         </>
       )}

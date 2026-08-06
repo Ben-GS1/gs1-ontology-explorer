@@ -72,13 +72,38 @@ export function pickArtifact(
   );
 }
 
+/** Extracts the "versions/&lt;tag&gt;" segment from an artifact's public url, if present. */
+export function versionTagOf(artifact: Artifact): string | undefined {
+  return artifact.url.match(/\/versions\/([^/]+)\//)?.[1];
+}
+
+/** Every distinct deprecated version tag present in a domain's artifacts, most recent first (as ordered by the generator). */
+export function deprecatedVersionTags(domain: DomainEntry): string[] {
+  const tags = new Set<string>();
+  for (const a of domain.artifacts) {
+    if (a.status === "deprecated") {
+      const tag = versionTagOf(a);
+      if (tag) tags.add(tag);
+    }
+  }
+  return Array.from(tags);
+}
+
 /** Loads and parses every JSON-LD vocabulary/ontology artifact for a domain (current version only, by default). */
 export async function loadDomainTerms(
   domain: DomainEntry,
-  status: Artifact["status"] = "current"
+  status: Artifact["status"] = "current",
+  versionTag?: string
 ): Promise<VocabTerm[]> {
   const jsonldArtifacts = domain.artifacts.filter(
-    (a) => a.status === status && a.mediaType === "application/ld+json" && (a.kind === "vocabulary" || a.kind === "ontology")
+    (a) =>
+      a.status === status &&
+      a.mediaType === "application/ld+json" &&
+      (a.kind === "vocabulary" || a.kind === "ontology") &&
+      // When browsing a specific deprecated snapshot, only that snapshot's
+      // files — otherwise every historical version's vocabulary would be
+      // parsed and merged together, which reads as duplicated/conflicting terms.
+      (status !== "deprecated" || versionTagOf(a) === versionTag)
   );
 
   const results = await Promise.allSettled(

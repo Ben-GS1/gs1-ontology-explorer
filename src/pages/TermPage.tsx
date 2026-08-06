@@ -52,8 +52,8 @@ export function TermPage() {
     return <ErrorBlock title={t("termNotFound", { ns: "errors", term: termName, domain: domainSlug })} />;
   }
 
-  const sector = sectorByCode(sectorsQuery.data ?? [], domain.sectorCode);
-  const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : domain.sectorCode;
+  const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
+  const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
   const permalink = `${RESOLVER_HOST}/${domain.slug}/${term.localName}`;
 
   return (

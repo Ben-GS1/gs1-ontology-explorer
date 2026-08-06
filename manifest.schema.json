@@ -11,13 +11,16 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["slug", "label", "sectorCode", "artifacts"],
+        "required": ["slug", "label", "artifacts"],
         "properties": {
           "slug": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "URL path segment, e.g. 'rail' -> https://gs1-epcis-reg.org/rail/{term}" },
           "labelKey": { "type": "string" },
           "label": { "type": "string" },
           "description": { "type": "string" },
-          "sectorCode": { "type": "string", "description": "One of the Gs1Sector codeValue values, e.g. TRAN, MANU." },
+          "sectorCode": {
+            "type": "string",
+            "description": "One of the Gs1Sector codeValue values, e.g. TRAN, MANU. Omit entirely for cross-sector domains published under a 'shared' location rather than under a specific sector — the SPA groups these under a separate 'Cross-Sector' section instead of a Gs1Sector."
+          },
           "artifacts": {
             "type": "array",
             "items": {

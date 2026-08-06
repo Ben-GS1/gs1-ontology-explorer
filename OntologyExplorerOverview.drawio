@@ -37,7 +37,7 @@
         <mxCell id="cO-ocxVFCf9u37VRgIKg-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" value="registry/manifest.jsonld" vertex="1">
           <mxGeometry height="15" width="120" x="565" y="-20" as="geometry" />
         </mxCell>
-        <mxCell id="cO-ocxVFCf9u37VRgIKg-12" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;" value="Azure Static Web App" vertex="1">
+        <mxCell id="cO-ocxVFCf9u37VRgIKg-12" parent="1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;shapeInside=1;fixedSize=1;" value="Azure Static Web App&lt;br&gt;&lt;a class=&quot;group flex items-center gap-3&quot; href=&quot;https://happy-river-0c5cd5303.7.azurestaticapps.net/&quot;&gt;&lt;span class=&quot;font-display text-[15px] font-semibold leading-tight tracking-tight&quot;&gt;GS1 Web Ontology &amp;amp; Vocabulary Registry&lt;/span&gt;&lt;/a&gt;" vertex="1">
           <mxGeometry height="160" width="370" x="440" y="120" as="geometry" />
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&lt;br&gt;main" vertex="1">

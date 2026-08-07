@@ -152,15 +152,32 @@ current.
 
 ## 2d. Browsing deprecated versions
 
-When a domain's `artifacts` include `status: "deprecated"` entries (as the
-generator produces — one set per historical `versions/<tag>/`
-snapshot), the domain page (`src/pages/DomainPage.tsx`) shows a status
-toggle (Current / Staging / Deprecated — only the statuses actually
-present) plus, for Deprecated, a version dropdown built from the distinct
-`versions/<tag>` segments found in those artifacts' URLs
-(`deprecatedVersionTags()` / `versionTagOf()` in `src/lib/registryClient.ts`).
-Selecting a version loads and parses only that snapshot's own vocabulary
-files — historical versions are never merged together into one term list.
+The domain page (`src/pages/DomainPage.tsx`) always shows a Current /
+Staging toggle (never hidden, even if one side has nothing published
+yet — see `domain.artifactsEmpty` / `domain.termsEmpty`), plus a
+Deprecated tab once a domain has `status: "deprecated"` artifacts (one
+set per historical `versions/<tag>/` snapshot the generator produced),
+with a version dropdown built from the distinct `versions/<tag>` segments
+found in those artifacts' URLs (`deprecatedVersionTags()` / `versionTagOf()`
+in `src/lib/registryClient.ts`). Selecting a version loads and parses only
+that snapshot's own vocabulary files — historical versions are never
+merged together into one term list.
+
+## 2e. Comparing two versions of a term
+
+The term detail page (`src/pages/TermPage.tsx`) has its own version
+switcher (top right, next to the term title — shows which of
+Current/Staging/a specific deprecated version is being viewed, reflected
+in the URL as `?status=staging` or `?status=deprecated&v=v1.0.0` so a
+specific version is linkable/shareable) plus a "Compare versions" toggle
+that reveals `src/components/VersionCompare.tsx`: pick any two versions
+(e.g. Current vs. Staging, or Current vs. a specific deprecated
+`v0.1.2`) and get a field-by-field diff table (label, description, type,
+`sw:term_status`, every relation predicate — union of both sides, changed
+rows highlighted) plus a collapsible raw JSON-LD line diff (via `diff`/jsdiff).
+Both sides load independently through `useTermAtVersion()`, so a term
+that doesn't exist yet in one of the two versions is reported clearly
+rather than erroring.
 
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 

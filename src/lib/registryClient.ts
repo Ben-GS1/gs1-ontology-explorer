@@ -10,13 +10,22 @@ export class RegistryFetchError extends Error {
   }
 }
 
-async function fetchJson(url: string): Promise<unknown> {
+async function fetchJson(url: string, attempt = 0): Promise<unknown> {
   const res = await fetch(url, {
     headers: { Accept: "application/ld+json, application/json;q=0.9" },
     // GitHub Pages serves static, CDN-cached content — safe to let the
     // browser HTTP cache do its job rather than forcing no-store.
   });
   if (!res.ok) {
+    // GitHub Pages occasionally returns a transient 5xx (and, on an error
+    // response, often omits CORS headers too — which shows up in the
+    // browser console as a misleading "CORS blocked" message even though
+    // the real cause is the 5xx). A couple of short, cheap retries clears
+    // most of these without the person ever noticing.
+    if (res.status >= 500 && attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** attempt));
+      return fetchJson(url, attempt + 1);
+    }
     throw new RegistryFetchError(`Request to ${url} failed with ${res.status}`, url);
   }
   return res.json();
@@ -87,6 +96,25 @@ export function deprecatedVersionTags(domain: DomainEntry): string[] {
     }
   }
   return Array.from(tags);
+}
+
+export interface VersionOption {
+  status: Artifact["status"];
+  /** Only set when status === "deprecated". */
+  versionTag?: string;
+}
+
+/**
+ * Every browsable (status, versionTag) combination for a domain: Current
+ * and Staging always (consistent with the domain page — always selectable
+ * even when empty), plus one entry per historical deprecated version.
+ */
+export function listVersionOptions(domain: DomainEntry): VersionOption[] {
+  const options: VersionOption[] = [{ status: "current" }, { status: "staging" }];
+  for (const tag of deprecatedVersionTags(domain)) {
+    options.push({ status: "deprecated", versionTag: tag });
+  }
+  return options;
 }
 
 /** Loads and parses every JSON-LD vocabulary/ontology artifact for a domain (current version only, by default). */

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { loadDomainMetadata, loadDomainTerms, loadManifest, loadSectors } from "@/lib/registryClient";
 import { FALLBACK_GS1_SECTORS } from "@/config/sectors";
-import type { DomainEntry } from "@/types/registry";
+import type { Artifact, DomainEntry } from "@/types/registry";
 
 /**
  * Loads the live GS1 Sector codelist from the definitions repo. If that
@@ -56,6 +56,24 @@ export function useDomainMetadata(domain: DomainEntry | undefined) {
   return useQuery({
     queryKey: ["domain-meta", domain?.slug],
     queryFn: () => loadDomainMetadata(domain as DomainEntry),
+    enabled: Boolean(domain),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Loads one specific term at one specific (status, versionTag) — the primitive both TermPage and the version-compare panel build on. */
+export function useTermAtVersion(
+  domain: DomainEntry | undefined,
+  localName: string,
+  status: Artifact["status"],
+  versionTag?: string
+) {
+  return useQuery({
+    queryKey: ["term-at-version", domain?.slug, localName, status, versionTag],
+    queryFn: async () => {
+      const terms = await loadDomainTerms(domain as DomainEntry, status, versionTag);
+      return terms.find((t) => t.localName === localName);
+    },
     enabled: Boolean(domain),
     staleTime: 5 * 60 * 1000,
   });

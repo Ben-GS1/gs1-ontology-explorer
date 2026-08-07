@@ -5,15 +5,15 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="cO-ocxVFCf9u37VRgIKg-2" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;verticalAlign=top;" value="GitHub&lt;br&gt;gs1-ontology-explorer" vertex="1">
-          <mxGeometry height="160" width="240" x="40" y="40" as="geometry" />
+          <mxGeometry height="239" width="240" x="40" y="40" as="geometry" />
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-1" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;verticalAlign=top;" value="GitHub&lt;br&gt;WebOntology" vertex="1">
           <mxGeometry height="410" width="240" x="520" y="-370" as="geometry" />
         </mxCell>
-        <mxCell id="cO-ocxVFCf9u37VRgIKg-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&lt;br&gt;stage" vertex="1">
+        <mxCell id="cO-ocxVFCf9u37VRgIKg-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;stage&amp;nbsp; &amp;nbsp; &amp;nbsp; src&amp;nbsp;&amp;nbsp;" vertex="1">
           <mxGeometry height="60" width="150" x="550" y="-300" as="geometry" />
         </mxCell>
-        <mxCell id="cO-ocxVFCf9u37VRgIKg-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&lt;br&gt;main" vertex="1">
+        <mxCell id="cO-ocxVFCf9u37VRgIKg-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&lt;br&gt;src&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;main&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;&amp;nbsp;" vertex="1">
           <mxGeometry height="60" width="150" x="550" y="-230" as="geometry" />
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Branch&amp;nbsp;&lt;br&gt;gh-pages" vertex="1">
@@ -49,9 +49,9 @@
             <mxPoint x="290" y="149.5" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="cO-ocxVFCf9u37VRgIKg-15" connectable="0" parent="cO-ocxVFCf9u37VRgIKg-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="deploys automatically" vertex="1">
+        <mxCell id="cO-ocxVFCf9u37VRgIKg-15" connectable="0" parent="cO-ocxVFCf9u37VRgIKg-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="push to main deploys automatically" vertex="1">
           <mxGeometry relative="1" x="0.1418" as="geometry">
-            <mxPoint as="offset" />
+            <mxPoint x="-21" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-17" parent="1" style="html=1;shadow=0;dashed=0;align=center;verticalAlign=middle;shape=mxgraph.arrows2.uTurnArrow;dy=5;arrowHead=25;dx2=25;rotation=0;" value="" vertex="1">
@@ -82,19 +82,33 @@
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-26" edge="1" parent="1" style="shape=flexArrow;endArrow=classic;html=1;rounded=0;width=8;endSize=7;endWidth=12;fillColor=light-dark(#FFFFFF,#000000);" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="580" y="-180" as="sourcePoint" />
+            <mxPoint x="579.86" y="-190.48" as="sourcePoint" />
             <mxPoint x="580" y="-70" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="cO-ocxVFCf9u37VRgIKg-28" edge="1" parent="1" style="shape=flexArrow;endArrow=classic;html=1;rounded=0;width=8;endSize=7;endWidth=12;fillColor=light-dark(#FFFFFF,#000000);entryX=0.883;entryY=0.733;entryDx=0;entryDy=0;entryPerimeter=0;" target="cO-ocxVFCf9u37VRgIKg-7" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="670" y="-255" as="sourcePoint" />
+            <mxPoint x="669.86" y="-260" as="sourcePoint" />
             <mxPoint x="670" y="-145" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="h-_cQOWpCgA4G0S0Iczq-1" connectable="0" parent="cO-ocxVFCf9u37VRgIKg-28" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;p data-local-id=&quot;f97974d742a4&quot; data-prosemirror-content-type=&quot;node&quot; data-prosemirror-node-name=&quot;paragraph&quot; data-prosemirror-node-block=&quot;true&quot; data-pm-slice=&quot;1 1 [&amp;quot;bulletList&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;62834010-b212-4eca-9063-d2962eab4522&amp;quot;},&amp;quot;listItem&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;8b7be1ba-a152-4299-b205-d34393648bae&amp;quot;},&amp;quot;bulletList&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;aaf72812-0166-4cd8-8c68-c474dea26977&amp;quot;},&amp;quot;listItem&amp;quot;,{&amp;quot;localId&amp;quot;:&amp;quot;9cfd9492-64fd-4a1e-8593-6a0d0694fb88&amp;quot;}]&quot;&gt;Push auf stage löst die Stage-Deploy‑Action aus&lt;/p&gt;" vertex="1">
           <mxGeometry relative="1" x="0.1155" as="geometry">
             <mxPoint x="119" y="-2" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kHunEOqUU6Pq25KZbZfa-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;" value="Pull Request&amp;nbsp;&lt;br&gt;against main" vertex="1">
+          <mxGeometry height="40" width="150" x="70" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="kHunEOqUU6Pq25KZbZfa-2" edge="1" parent="1" source="kHunEOqUU6Pq25KZbZfa-1" style="shape=flexArrow;endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;width=21;endSize=9;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="cO-ocxVFCf9u37VRgIKg-12" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="220" y="211.5" as="sourcePoint" />
+            <mxPoint x="430" y="208.5" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kHunEOqUU6Pq25KZbZfa-3" connectable="0" parent="kHunEOqUU6Pq25KZbZfa-2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="creates automaticall preview environment" vertex="1">
+          <mxGeometry relative="1" x="0.1418" as="geometry">
+            <mxPoint x="-21" as="offset" />
           </mxGeometry>
         </mxCell>
       </root>

@@ -1,4 +1,4 @@
-# GS1 Web Ontology & Vocabulary Registry
+# GS1 Web Ontology & Vocabulary Explorer
 
 Additional documentation in Confluence space "GS1 Ontology Explorer".
 

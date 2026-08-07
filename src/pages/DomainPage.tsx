@@ -55,14 +55,16 @@ export function DomainPage() {
 
   const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
   const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
-  const availableStatuses = (["current", "staging", "deprecated"] as const).filter((s) =>
-    domain.artifacts.some((a) => a.status === s)
-  );
+  // "current" and "staging" are always offered, even if this particular
+  // domain has no artifacts under one of them yet — so switching between
+  // them is never hidden depending on what happens to be published right
+  // now. "deprecated" only appears once there's actual history to browse.
+  const availableStatuses: Artifact["status"][] = ["current", "staging"];
+  if (domain.artifacts.some((a) => a.status === "deprecated")) availableStatuses.push("deprecated");
 
   const artifactsForStatus = domain.artifacts.filter(
     (a) => a.status === status && (status !== "deprecated" || versionTagOf(a) === effectiveVersionTag)
   );
-  const artifactsToShow = artifactsForStatus.length > 0 ? artifactsForStatus : domain.artifacts;
 
   return (
     <div>
@@ -96,47 +98,51 @@ export function DomainPage() {
           )}
         </div>
 
-        {availableStatuses.length > 1 && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <div className="flex gap-1 rounded border border-ink-100 bg-white p-1 text-xs">
-              {availableStatuses.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    setStatus(s);
-                    if (s !== "deprecated") setVersionTag(undefined);
-                  }}
-                  className={`rounded-sm px-2.5 py-1 font-medium ${
-                    status === s ? "bg-ink-900 text-ink-50" : "text-ink-500 hover:bg-ink-50"
-                  }`}
-                >
-                  {t(`status.${s}`)}
-                </button>
-              ))}
-            </div>
-            {status === "deprecated" && versionTags.length > 1 && (
-              <select
-                value={effectiveVersionTag}
-                onChange={(e) => setVersionTag(e.target.value)}
-                aria-label="Version"
-                className="rounded border border-ink-100 bg-white px-2 py-1.5 text-xs text-ink-700"
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex gap-1 rounded border border-ink-100 bg-white p-1 text-xs">
+            {availableStatuses.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setStatus(s);
+                  if (s !== "deprecated") setVersionTag(undefined);
+                }}
+                className={`rounded-sm px-2.5 py-1 font-medium ${
+                  status === s ? "bg-ink-900 text-ink-50" : "text-ink-500 hover:bg-ink-50"
+                }`}
               >
-                {versionTags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
-                  </option>
-                ))}
-              </select>
-            )}
+                {t(`status.${s}`)}
+              </button>
+            ))}
           </div>
-        )}
+          {status === "deprecated" && versionTags.length > 1 && (
+            <select
+              value={effectiveVersionTag}
+              onChange={(e) => setVersionTag(e.target.value)}
+              aria-label="Version"
+              className="rounded border border-ink-100 bg-white px-2 py-1.5 text-xs text-ink-700"
+            >
+              {versionTags.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       <section className="mt-8">
         <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wide text-ink-400">
           {t("domain.artifacts")}
         </h2>
-        <ArtifactList artifacts={artifactsToShow} />
+        {artifactsForStatus.length > 0 ? (
+          <ArtifactList artifacts={artifactsForStatus} />
+        ) : (
+          <p className="rounded border border-dashed border-ink-200 px-4 py-6 text-sm text-ink-400">
+            {t("domain.artifactsEmpty", { status: t(`status.${status}`) })}
+          </p>
+        )}
       </section>
 
       <section className="mt-8">
@@ -161,7 +167,12 @@ export function DomainPage() {
 
         {termsQuery.isLoading && <LoadingBlock />}
         {termsQuery.isError && <ErrorBlock title={t("domainLoadFailed", { ns: "errors" })} />}
-        {termsQuery.data && filtered.length === 0 && (
+        {termsQuery.data && termsQuery.data.length === 0 && (
+          <p className="rounded border border-dashed border-ink-200 px-4 py-6 text-sm text-ink-400">
+            {t("domain.termsEmpty", { status: t(`status.${status}`) })}
+          </p>
+        )}
+        {termsQuery.data && termsQuery.data.length > 0 && query.trim() && filtered.length === 0 && (
           <p className="text-sm text-ink-400">{t("search.empty", { query })}</p>
         )}
 

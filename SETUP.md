@@ -27,7 +27,7 @@ cd gs1-ontology-explorer
 
 git init
 git add .
-git commit -m "Initial import: GS1 Ontology & Vocabulary Registry SPA"
+git commit -m "Initial import: GS1 Ontology & Vocabulary Explorer SPA"
 
 # Repo auf GitHub anlegen (Beispiel mit gh CLI):
 gh repo create <dein-github-org>/gs1-ontology-explorer --private --source=. --remote=origin

@@ -1,5 +1,7 @@
 # GS1 Web Ontology & Vocabulary Registry
 
+Additional documentation in Confluence space "GS1 Ontology Explorer".
+
 A state-of-the-art single-page application that renders GS1 sector/domain
 ontologies and vocabularies — published as versioned JSON-LD on GitHub
 Pages — as a browsable, searchable, filterable, human-readable website,

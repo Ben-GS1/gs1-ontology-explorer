@@ -1,37 +1,59 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
 import { sectorByCode } from "@/config/sectors";
-import { useDomain, useManifest, useSectors } from "@/hooks/useRegistry";
-import { loadDomainTerms } from "@/lib/registryClient";
+import { useDomain, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
+import { VersionSelect } from "@/components/VersionSelect";
+import { VersionCompare } from "@/components/VersionCompare";
+import type { VersionOption } from "@/lib/registryClient";
 import { RESOLVER_HOST } from "@/config/env";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
-import type { DomainEntry } from "@/types/registry";
-
-function useTerm(domain: DomainEntry | undefined, localName: string) {
-  return useQuery({
-    queryKey: ["term", domain?.slug, localName],
-    queryFn: async () => {
-      const terms = await loadDomainTerms(domain as DomainEntry);
-      return terms.find((t) => t.localName === localName);
-    },
-    enabled: Boolean(domain),
-  });
-}
 
 export function TermPage() {
   const { domainSlug = "", termName = "" } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation(["common", "sectors", "errors"]);
   const [showRaw, setShowRaw] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
 
   const { domain, isLoading: manifestLoading } = useDomain(domainSlug);
   const manifest = useManifest();
   const sectorsQuery = useSectors();
-  const termQuery = useTerm(domain, termName);
+
+  // Which version is currently being viewed — reflected in the URL
+  // (?status=staging or ?status=deprecated&v=v1.0.0) so links to a
+  // specific version are shareable, and defaulting to "current" otherwise.
+  const viewedVersion: VersionOption = useMemo(() => {
+    const status = (searchParams.get("status") as VersionOption["status"]) || "current";
+    const versionTag = searchParams.get("v") ?? undefined;
+    return status === "deprecated" ? { status, versionTag } : { status };
+  }, [searchParams]);
+
+  const setViewedVersion = (option: VersionOption) => {
+    const next = new URLSearchParams(searchParams);
+    if (option.status === "current") {
+      next.delete("status");
+      next.delete("v");
+    } else if (option.status === "staging") {
+      next.set("status", "staging");
+      next.delete("v");
+    } else {
+      next.set("status", "deprecated");
+      if (option.versionTag) next.set("v", option.versionTag);
+    }
+    setSearchParams(next, { replace: true });
+  };
+
+  const termQuery = useTermAtVersion(domain, termName, viewedVersion.status, viewedVersion.versionTag);
+
+  // Compare panel's two sides default to "current vs staging" — the most
+  // common "what changed before I promote" question — but are freely
+  // switchable, e.g. to current vs. a specific deprecated version.
+  const [compareA, setCompareA] = useState<VersionOption>({ status: "current" });
+  const [compareB, setCompareB] = useState<VersionOption>({ status: "staging" });
 
   // Cross-reference: does a term with the same @id (or same local name)
   // also appear in other domains' vocabularies? We only check domains that
@@ -71,16 +93,32 @@ export function TermPage() {
         ]}
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-semibold text-ink-900">{term.label}</h1>
-        {term.termStatus && <StatusBadge status={term.termStatus} />}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-2xl font-semibold text-ink-900">{term.label}</h1>
+          {term.termStatus && <StatusBadge status={term.termStatus} />}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="text-xs text-ink-400">{t("term.viewingVersion")}</span>
+          <VersionSelect
+            domain={domain}
+            value={viewedVersion}
+            onChange={setViewedVersion}
+            ariaLabel={t("term.viewingVersion")}
+          />
+        </div>
       </div>
       <p className="term-id mt-1 break-all text-sm text-ink-400">{term.id}</p>
 
       {term.types.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-ink-400">{t("term.typeLabel")}</span>
           {term.types.map((ty) => (
-            <span key={ty} className="term-id rounded-sm border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[11px] text-ink-500">
+            <span
+              key={ty}
+              className="term-id rounded-sm border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[11px] text-ink-500"
+            >
               {ty}
             </span>
           ))}
@@ -123,19 +161,37 @@ export function TermPage() {
         </p>
       )}
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap items-center gap-4">
         <button
           onClick={() => setShowRaw((v) => !v)}
           className="text-xs font-medium text-ink-500 underline decoration-dotted underline-offset-2 hover:text-ink-800"
         >
           {showRaw ? "Hide" : "Show"} {t("term.rawJsonLd")}
         </button>
-        {showRaw && (
-          <pre className="mt-3 overflow-x-auto rounded border border-ink-100 bg-ink-950 p-4 text-xs text-ink-100">
-            {JSON.stringify(term.raw, null, 2)}
-          </pre>
-        )}
+        <button
+          onClick={() => setShowCompare((v) => !v)}
+          className="text-xs font-medium text-ink-500 underline decoration-dotted underline-offset-2 hover:text-ink-800"
+        >
+          {t("term.compare")}
+        </button>
       </div>
+
+      {showRaw && (
+        <pre className="mt-3 overflow-x-auto rounded border border-ink-100 bg-ink-950 p-4 text-xs text-ink-100">
+          {JSON.stringify(term.raw, null, 2)}
+        </pre>
+      )}
+
+      {showCompare && (
+        <VersionCompare
+          domain={domain}
+          localName={term.localName}
+          versionA={compareA}
+          versionB={compareB}
+          onChangeA={setCompareA}
+          onChangeB={setCompareB}
+        />
+      )}
     </div>
   );
 }

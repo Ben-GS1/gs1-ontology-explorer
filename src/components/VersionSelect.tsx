@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { listVersionOptions, type VersionOption } from "@/lib/registryClient";
 import type { DomainEntry } from "@/types/registry";
 
-function optionKey(o: VersionOption): string {
+export function optionKey(o: VersionOption): string {
   return o.status === "deprecated" ? `deprecated:${o.versionTag}` : o.status;
 }
 

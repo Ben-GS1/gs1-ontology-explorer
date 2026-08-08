@@ -5,28 +5,12 @@ import clsx from "clsx";
 import { useTermAtVersion } from "@/hooks/useRegistry";
 import { VersionSelect } from "./VersionSelect";
 import { LoadingBlock } from "./StateBlocks";
-import type { DomainEntry, VocabTerm } from "@/types/registry";
+import { buildFieldRows } from "@/lib/termDiff";
+import type { DomainEntry } from "@/types/registry";
 import type { VersionOption } from "@/lib/registryClient";
 
 function versionLabel(o: VersionOption, t: (key: string) => string): string {
   return o.status === "deprecated" ? (o.versionTag ?? "deprecated") : t(`status.${o.status}`);
-}
-
-/** Rows for the structured, field-by-field comparison table. */
-export function buildFieldRows(a: VocabTerm | undefined, b: VocabTerm | undefined) {
-  const rows: { field: string; a: string; b: string; changed: boolean }[] = [];
-  const push = (field: string, av: string, bv: string) => rows.push({ field, a: av, b: bv, changed: av !== bv });
-
-  push("label", a?.label ?? "—", b?.label ?? "—");
-  push("description", a?.description ?? "—", b?.description ?? "—");
-  push("type", (a?.types ?? []).slice().sort().join(", ") || "—", (b?.types ?? []).slice().sort().join(", ") || "—");
-  push("termStatus", a?.termStatus ?? "—", b?.termStatus ?? "—");
-
-  const predicates = new Set([...Object.keys(a?.relations ?? {}), ...Object.keys(b?.relations ?? {})]);
-  for (const pred of Array.from(predicates).sort()) {
-    push(pred, (a?.relations[pred] ?? []).join(", ") || "—", (b?.relations[pred] ?? []).join(", ") || "—");
-  }
-  return rows;
 }
 
 function optionsEqual(a: VersionOption, b: VersionOption): boolean {

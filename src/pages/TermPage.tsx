@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
 import { useDomain, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
-import { VersionSelect } from "@/components/VersionSelect";
+import { VersionSelect, versionOptionFromKey } from "@/components/VersionSelect";
 import { VersionCompare } from "@/components/VersionCompare";
 import type { VersionOption } from "@/lib/registryClient";
 import { RESOLVER_HOST } from "@/config/env";
@@ -17,7 +17,13 @@ export function TermPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation(["common", "sectors", "errors"]);
   const [showRaw, setShowRaw] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
+
+  // If arriving from the domain-level diff view's "Changed" list
+  // (?compareA=current&compareB=deprecated:v0.1.2), open the compare panel
+  // immediately, pre-filled with those two versions.
+  const initialCompareA = searchParams.get("compareA");
+  const initialCompareB = searchParams.get("compareB");
+  const [showCompare, setShowCompare] = useState(Boolean(initialCompareA && initialCompareB));
 
   const { domain, isLoading: manifestLoading } = useDomain(domainSlug);
   const manifest = useManifest();
@@ -51,9 +57,14 @@ export function TermPage() {
 
   // Compare panel's two sides default to "current vs staging" — the most
   // common "what changed before I promote" question — but are freely
-  // switchable, e.g. to current vs. a specific deprecated version.
-  const [compareA, setCompareA] = useState<VersionOption>({ status: "current" });
-  const [compareB, setCompareB] = useState<VersionOption>({ status: "staging" });
+  // switchable, e.g. to current vs. a specific deprecated version. When
+  // arriving via a domain-diff link, the two sides come from the URL instead.
+  const [compareA, setCompareA] = useState<VersionOption>(
+    initialCompareA ? versionOptionFromKey(initialCompareA) : { status: "current" }
+  );
+  const [compareB, setCompareB] = useState<VersionOption>(
+    initialCompareB ? versionOptionFromKey(initialCompareB) : { status: "staging" }
+  );
 
   // Cross-reference: does a term with the same @id (or same local name)
   // also appear in other domains' vocabularies? We only check domains that

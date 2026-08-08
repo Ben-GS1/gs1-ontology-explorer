@@ -2,24 +2,15 @@ import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useQuery } from "@tanstack/react-query";
 import { sectorByCode } from "@/config/sectors";
-import { useDomain, useDomainMetadata, useSectors } from "@/hooks/useRegistry";
-import { deprecatedVersionTags, loadDomainTerms, versionTagOf } from "@/lib/registryClient";
+import { useDomain, useDomainMetadata, useDomainTermsAtVersion, useSectors } from "@/hooks/useRegistry";
+import { deprecatedVersionTags, versionTagOf, type VersionOption } from "@/lib/registryClient";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ArtifactList } from "@/components/ArtifactList";
 import { TermRow } from "@/components/TermRow";
+import { DomainVersionDiff } from "@/components/DomainVersionDiff";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
-import type { Artifact, DomainEntry } from "@/types/registry";
-
-function useDomainTermsForStatus(domain: DomainEntry | undefined, status: Artifact["status"], versionTag?: string) {
-  return useQuery({
-    queryKey: ["domain-terms", domain?.slug, status, versionTag],
-    queryFn: () => loadDomainTerms(domain as DomainEntry, status, versionTag),
-    enabled: Boolean(domain),
-    staleTime: 5 * 60 * 1000,
-  });
-}
+import type { Artifact } from "@/types/registry";
 
 export function DomainPage() {
   const { domainSlug = "" } = useParams();
@@ -27,13 +18,16 @@ export function DomainPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Artifact["status"]>("current");
   const [versionTag, setVersionTag] = useState<string | undefined>(undefined);
+  const [showDiff, setShowDiff] = useState(false);
+  const [diffA, setDiffA] = useState<VersionOption>({ status: "current" });
+  const [diffB, setDiffB] = useState<VersionOption>({ status: "staging" });
 
   const { data: manifest, isLoading, isError, domain } = useDomain(domainSlug);
   const meta = useDomainMetadata(domain);
   const sectorsQuery = useSectors();
   const versionTags = domain ? deprecatedVersionTags(domain) : [];
   const effectiveVersionTag = status === "deprecated" ? versionTag ?? versionTags[0] : undefined;
-  const termsQuery = useDomainTermsForStatus(domain, status, effectiveVersionTag);
+  const termsQuery = useDomainTermsAtVersion(domain, status, effectiveVersionTag);
 
   const filtered = useMemo(() => {
     const list = termsQuery.data ?? [];
@@ -155,31 +149,51 @@ export function DomainPage() {
               </span>
             )}
           </h2>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("search.placeholder") ?? ""}
-            aria-label={t("search.placeholder") ?? ""}
-            className="w-64 max-w-full rounded border border-ink-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-signal"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowDiff((v) => !v)}
+              className="text-xs font-medium text-ink-500 underline decoration-dotted underline-offset-2 hover:text-ink-800"
+            >
+              {t("diff.compareVersions")}
+            </button>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("search.placeholder") ?? ""}
+              aria-label={t("search.placeholder") ?? ""}
+              className="w-64 max-w-full rounded border border-ink-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-signal"
+            />
+          </div>
         </div>
 
-        {termsQuery.isLoading && <LoadingBlock />}
-        {termsQuery.isError && <ErrorBlock title={t("domainLoadFailed", { ns: "errors" })} />}
-        {termsQuery.data && termsQuery.data.length === 0 && (
-          <p className="rounded border border-dashed border-ink-200 px-4 py-6 text-sm text-ink-400">
-            {t("domain.termsEmpty", { status: t(`status.${status}`) })}
-          </p>
-        )}
-        {termsQuery.data && termsQuery.data.length > 0 && query.trim() && filtered.length === 0 && (
-          <p className="text-sm text-ink-400">{t("search.empty", { query })}</p>
+        {showDiff && (
+          <DomainVersionDiff
+            domain={domain}
+            versionA={diffA}
+            versionB={diffB}
+            onChangeA={setDiffA}
+            onChangeB={setDiffB}
+          />
         )}
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {filtered.map((term) => (
-            <TermRow key={term.id} term={term} />
-          ))}
+        <div className="mt-6">
+          {termsQuery.isLoading && <LoadingBlock />}
+          {termsQuery.isError && <ErrorBlock title={t("domainLoadFailed", { ns: "errors" })} />}
+          {termsQuery.data && termsQuery.data.length === 0 && (
+            <p className="rounded border border-dashed border-ink-200 px-4 py-6 text-sm text-ink-400">
+              {t("domain.termsEmpty", { status: t(`status.${status}`) })}
+            </p>
+          )}
+          {termsQuery.data && termsQuery.data.length > 0 && query.trim() && filtered.length === 0 && (
+            <p className="text-sm text-ink-400">{t("search.empty", { query })}</p>
+          )}
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {filtered.map((term) => (
+              <TermRow key={term.id} term={term} />
+            ))}
+          </div>
         </div>
       </section>
     </div>

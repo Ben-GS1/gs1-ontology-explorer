@@ -179,6 +179,23 @@ Both sides load independently through `useTermAtVersion()`, so a term
 that doesn't exist yet in one of the two versions is reported clearly
 rather than erroring.
 
+## 2f. What changed across a whole domain
+
+The domain page's Terms section has its own "Compare versions" toggle,
+revealing `src/components/DomainVersionDiff.tsx` — same two version
+pickers, but diffs the *entire* term list at once (`diffTermSets()` in
+`src/lib/termDiff.ts`, matched by `localName`) into three columns:
+**Added** (only in the newer side), **Removed** (only in the older side),
+**Changed** (present in both, at least one field differs — reusing the
+same `buildFieldRows()` the single-term compare uses, so "changed" here
+means exactly what it means there). Unchanged terms are counted but not
+listed, to keep the panel focused. Clicking any "Changed" term links
+straight into that term's own compare view
+(`/{domain}/{term}?compareA=current&compareB=deprecated:v0.1.2`) with
+both sides already selected — `TermPage.tsx` reads `compareA`/`compareB`
+from the URL, seeds the compare panel from them, and opens it
+automatically.
+
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 
 `src/lib/vocabParser.ts` renders **any** JSON-LD vocabulary/ontology file

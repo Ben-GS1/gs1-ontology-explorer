@@ -43,13 +43,22 @@ export function useDomain(slug: string | undefined) {
   return { ...manifest, domain };
 }
 
-export function useDomainTerms(domain: DomainEntry | undefined) {
+/** Loads a domain's terms at a specific (status, versionTag) — the primitive DomainPage, the term-set diff, and search all build on. */
+export function useDomainTermsAtVersion(
+  domain: DomainEntry | undefined,
+  status: Artifact["status"] = "current",
+  versionTag?: string
+) {
   return useQuery({
-    queryKey: ["domain-terms", domain?.slug],
-    queryFn: () => loadDomainTerms(domain as DomainEntry),
+    queryKey: ["domain-terms", domain?.slug, status, versionTag],
+    queryFn: () => loadDomainTerms(domain as DomainEntry, status, versionTag),
     enabled: Boolean(domain),
     staleTime: 5 * 60 * 1000,
   });
+}
+
+export function useDomainTerms(domain: DomainEntry | undefined) {
+  return useDomainTermsAtVersion(domain, "current");
 }
 
 export function useDomainMetadata(domain: DomainEntry | undefined) {

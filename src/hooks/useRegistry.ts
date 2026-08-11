@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { loadDomainMetadata, loadDomainTerms, loadManifest, loadSectors } from "@/lib/registryClient";
+import { loadDomainMetadata, loadDomainTerms, loadDomains, loadManifest, loadSectors } from "@/lib/registryClient";
 import { FALLBACK_GS1_SECTORS } from "@/config/sectors";
+import { FALLBACK_GS1_DOMAINS } from "@/config/domains";
 import type { Artifact, DomainEntry } from "@/types/registry";
 
 /**
@@ -25,6 +26,23 @@ export function useSectors() {
     },
     staleTime: 60 * 60 * 1000,
     // Never surface this as an error state to the UI — see fallback above.
+    retry: 1,
+  });
+}
+
+/** Same resilience pattern as useSectors(), for the domain codelist (registry/domains.jsonld). */
+export function useDomains() {
+  return useQuery({
+    queryKey: ["domains-codelist"],
+    queryFn: async () => {
+      try {
+        return await loadDomains();
+      } catch (err) {
+        console.warn("[registry] domain codelist fetch failed, using bundled fallback", err);
+        return FALLBACK_GS1_DOMAINS;
+      }
+    },
+    staleTime: 60 * 60 * 1000,
     retry: 1,
   });
 }

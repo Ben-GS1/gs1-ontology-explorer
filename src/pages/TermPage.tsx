@@ -3,7 +3,8 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
-import { useDomain, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
+import { useDomain, useDomains, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
+import { domainDisplayLabel } from "@/config/domains";
 import { VersionSelect, versionOptionFromKey } from "@/components/VersionSelect";
 import { VersionCompare } from "@/components/VersionCompare";
 import type { VersionOption } from "@/lib/registryClient";
@@ -28,6 +29,7 @@ export function TermPage() {
   const { domain, isLoading: manifestLoading } = useDomain(domainSlug);
   const manifest = useManifest();
   const sectorsQuery = useSectors();
+  const domainsQuery = useDomains();
 
   // Which version is currently being viewed — reflected in the URL
   // (?status=staging or ?status=deprecated&v=v1.0.0) so links to a
@@ -86,20 +88,21 @@ export function TermPage() {
   }
 
   const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
+  const domainLabel = domainDisplayLabel(domainsQuery.data ?? [], domain.slug, domain.label);
   const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
   const permalink = `${RESOLVER_HOST}/${domain.slug}/${term.localName}`;
 
   return (
     <div>
       <Helmet>
-        <title>{`${term.label} — ${domain.label} — ${t("app.title")}`}</title>
+        <title>{`${term.label} — ${domainLabel} — ${t("app.title")}`}</title>
         <link rel="alternate" type="application/ld+json" href={term.sourceArtifactUrl} />
       </Helmet>
       <Breadcrumbs
         items={[
           { label: t("breadcrumb.home"), to: "/" },
           ...(sector ? [{ label: sectorLabel, to: `/sector/${sector.codeValue.toLowerCase()}` }] : []),
-          { label: domain.label, to: `/${domain.slug}` },
+          { label: domainLabel, to: `/${domain.slug}` },
           { label: term.label },
         ]}
       />
@@ -143,7 +146,7 @@ export function TermPage() {
       <dl className="mt-8 grid grid-cols-1 gap-x-8 gap-y-4 rounded border border-ink-100 bg-white p-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.definedIn")}</dt>
-          <dd className="mt-1 text-sm text-ink-700">{domain.label}</dd>
+          <dd className="mt-1 text-sm text-ink-700">{domainLabel}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.permalink")}</dt>

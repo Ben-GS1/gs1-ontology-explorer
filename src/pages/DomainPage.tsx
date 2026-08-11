@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
-import { useDomain, useDomainMetadata, useDomainTermsAtVersion, useSectors } from "@/hooks/useRegistry";
+import { useDomain, useDomainMetadata, useDomainTermsAtVersion, useDomains, useSectors } from "@/hooks/useRegistry";
+import { domainDisplayLabel } from "@/config/domains";
 import { deprecatedVersionTags, versionTagOf, type VersionOption } from "@/lib/registryClient";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ArtifactList } from "@/components/ArtifactList";
@@ -25,6 +26,7 @@ export function DomainPage() {
   const { data: manifest, isLoading, isError, domain } = useDomain(domainSlug);
   const meta = useDomainMetadata(domain);
   const sectorsQuery = useSectors();
+  const domainsQuery = useDomains();
   const versionTags = domain ? deprecatedVersionTags(domain) : [];
   const effectiveVersionTag = status === "deprecated" ? versionTag ?? versionTags[0] : undefined;
   const termsQuery = useDomainTermsAtVersion(domain, status, effectiveVersionTag);
@@ -48,6 +50,7 @@ export function DomainPage() {
   }
 
   const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
+  const domainLabel = domainDisplayLabel(domainsQuery.data ?? [], domain.slug, domain.label);
   const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
   // "current" and "staging" are always offered, even if this particular
   // domain has no artifacts under one of them yet — so switching between
@@ -63,20 +66,20 @@ export function DomainPage() {
   return (
     <div>
       <Helmet>
-        <title>{`${domain.label} — ${t("app.title")}`}</title>
+        <title>{`${domainLabel} — ${t("app.title")}`}</title>
       </Helmet>
       <Breadcrumbs
         items={[
           { label: t("breadcrumb.home"), to: "/" },
           ...(sector ? [{ label: sectorLabel, to: `/sector/${sector.codeValue.toLowerCase()}` }] : []),
-          { label: domain.label },
+          { label: domainLabel },
         ]}
       />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">
-            {meta.data?.title ?? domain.label}
+            {meta.data?.title ?? domainLabel}
           </h1>
           <p className="term-id mt-1 text-xs text-ink-400">/{domain.slug}</p>
           {(meta.data?.description ?? domain.description) && (

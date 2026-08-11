@@ -61,18 +61,30 @@ exakten Patch gegen euren echten Workflow. Manuell bleibt nur:
 | Datei | Vorlage in diesem Paket | Zweck |
 |---|---|---|
 | `registry/sectors.jsonld` | `public/sample-sectors.json` + `sectors.schema.json` | GS1-Sektoren-Codeliste (ändert sich selten, daher weiterhin handgepflegt) |
+| `registry/domains.jsonld` | `public/sample-domains.json` + `domains.schema.json` | GS1-Domain-Codeliste — Anzeigenamen pro Domain-Slug, analog zu `sectors.jsonld` |
 
-Kopiere `public/sample-sectors.json` als Startpunkt in das Definitions-Repo
-unter `registry/sectors.jsonld`, committen, pushen. Das genügt — kein
+Kopiere `public/sample-sectors.json` bzw. `public/sample-domains.json` als
+Startpunkt in das Definitions-Repo unter `registry/sectors.jsonld` bzw.
+`registry/domains.jsonld`, committen, pushen. Das genügt — kein
 Code-Deploy nötig, die SPA liest das live beim nächsten Seitenaufruf.
 
-Kopiere idealerweise auch `sectors.schema.json` mit ins Definitions-Repo
-(neben `registry/sectors.jsonld`) und referenziere sie per `"$schema"`.
+Kopiere idealerweise auch `sectors.schema.json` und `domains.schema.json`
+mit ins Definitions-Repo (jeweils neben die zugehörige `.jsonld`-Datei)
+und referenziere sie per `"$schema"`.
 Dann bekommen Redakteur:innen dort Validierung/Autocomplete beim
-Bearbeiten — diese Datei wird von der SPA selbst nicht ausgeliefert, sie
-ist reine Vertragsdokumentation. `manifest.schema.json` gehört ebenso mit
+Bearbeiten — diese Dateien werden von der SPA selbst nicht ausgeliefert, sie
+sind reine Vertragsdokumentation. `manifest.schema.json` gehört ebenso mit
 ins Definitions-Repo, direkt neben das automatisch generierte
 `registry/manifest.jsonld` — siehe `scripts/PROMOTE_TO_PROD.md`, Schritt 1.
+
+**Hinweis zu `domains.jsonld`:** Die SPA akzeptiert sowohl ein nacktes
+Array (wie `sectors.jsonld`) als auch ein Objekt mit dem Array unter
+`"domains"` oder `"sectors"` — letzteres deckt eine bereits real
+existierende, per Hand erstellte Datei ab, die aus `sectors.jsonld`
+kopiert wurde und deshalb noch den Schlüssel `"sectors"` trägt, obwohl die
+Einträge `Gs1Domain` sind. Beides funktioniert unverändert; für neue
+Dateien ist `"domains"` als Schlüsselname empfehlenswert, aber nicht
+erforderlich.
 
 ### 2a. `url` vs. `source` — welche URL kommt wohin?
 
@@ -221,6 +233,8 @@ zugehörigen Vokabular.
 - **Neue Domain/Vokabular hinzufügen:** nur `registry/manifest.jsonld` im
   Definitions-Repo erweitern — kein SPA-Deploy nötig.
 - **Neuer/geänderter Sektor:** nur `registry/sectors.jsonld` im
+  Definitions-Repo ändern — kein SPA-Deploy nötig.
+- **Neuer/geänderter Domain-Anzeigename:** nur `registry/domains.jsonld` im
   Definitions-Repo ändern — kein SPA-Deploy nötig.
 - **SPA-Feature-Änderung:** normaler `git push` auf `main` im
   `gs1-ontology-explorer`-Repo → GitHub Actions baut & deployt automatisch.

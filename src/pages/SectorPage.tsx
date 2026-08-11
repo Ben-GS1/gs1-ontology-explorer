@@ -2,7 +2,8 @@ import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
-import { useManifest, useSectors } from "@/hooks/useRegistry";
+import { domainDisplayLabel } from "@/config/domains";
+import { useDomains, useManifest, useSectors } from "@/hooks/useRegistry";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
 import { NotFoundPage } from "./NotFoundPage";
@@ -12,6 +13,8 @@ export function SectorPage() {
   const { t } = useTranslation(["common", "sectors"]);
   const manifest = useManifest();
   const sectorsQuery = useSectors();
+  const domainsQuery = useDomains();
+  const domainNames = domainsQuery.data ?? [];
 
   if (sectorsQuery.isLoading) return <LoadingBlock />;
 
@@ -45,7 +48,7 @@ export function SectorPage() {
                 className="group block rounded border border-ink-100 bg-white p-4 shadow-card transition hover:border-signal/50"
               >
                 <h2 className="font-display text-[15px] font-medium text-ink-900 group-hover:text-signal-dim">
-                  {d.label}
+                  {domainDisplayLabel(domainNames, d.slug, d.label)}
                 </h2>
                 <p className="term-id mt-0.5 text-xs text-ink-400">/{d.slug}</p>
                 {d.description && <p className="mt-1.5 text-[13px] text-ink-500">{d.description}</p>}

@@ -6,6 +6,7 @@
     { "route": "/favicon.svg" },
     { "route": "/sample-manifest.json" },
     { "route": "/sample-sectors.json" },
+    { "route": "/sample-domains.json" },
 
     { "route": "/api/*", "allowedRoles": ["anonymous"] },
 

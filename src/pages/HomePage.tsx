@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
-import { useManifest, useSectors } from "@/hooks/useRegistry";
+import { useDomains, useManifest, useSectors } from "@/hooks/useRegistry";
+import { domainDisplayLabel } from "@/config/domains";
 import { SectorCard } from "@/components/SectorCard";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
 
@@ -9,7 +10,9 @@ export function HomePage() {
   const { t } = useTranslation("common");
   const manifest = useManifest();
   const sectorsQuery = useSectors();
+  const domainsQuery = useDomains();
   const sectors = sectorsQuery.data ?? [];
+  const domainNames = domainsQuery.data ?? [];
 
   const domainsBySector = new Map<string, number>();
   manifest.data?.domains.forEach((d) => {
@@ -76,7 +79,7 @@ export function HomePage() {
                     className="group block rounded border border-ink-100 bg-white p-4 shadow-card transition hover:border-signal/50"
                   >
                     <h3 className="font-display text-[15px] font-medium text-ink-900 group-hover:text-signal-dim">
-                      {d.label}
+                      {domainDisplayLabel(domainNames, d.slug, d.label)}
                     </h3>
                     <p className="term-id mt-0.5 text-xs text-ink-400">/{d.slug}</p>
                     {d.description && <p className="mt-1.5 text-[13px] text-ink-500">{d.description}</p>}

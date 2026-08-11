@@ -1,7 +1,8 @@
-import { DEFINITIONS_BASE_URL, MANIFEST_PATH, SECTORS_PATH } from "@/config/env";
+import { DEFINITIONS_BASE_URL, DOMAINS_PATH, MANIFEST_PATH, SECTORS_PATH } from "@/config/env";
 import type { Artifact, DomainEntry, RegistryManifest, VocabTerm } from "@/types/registry";
 import { extractOntologyMetadata, parseVocabularyDocument, type OntologyMetadata } from "./vocabParser";
 import type { Gs1Sector } from "@/config/sectors";
+import type { Gs1Domain } from "@/config/domains";
 
 export class RegistryFetchError extends Error {
   constructor(message: string, public readonly url: string, public readonly cause?: unknown) {
@@ -47,6 +48,32 @@ export async function loadManifest(): Promise<RegistryManifest> {
 }
 
 /**
+ * Extracts the entries array from a codelist JSON document, tolerating
+ * either shape: a bare top-level array (the convention sectors.jsonld
+ * uses today), or an object wrapping the array under one of
+ * `preferredKeys` (the shape a hand-authored domains.jsonld arrived in —
+ * `{ "$schema": "...", "sectors": [...] }`, using "sectors" as the array
+ * key even though the entries are `Gs1Domain`s). Accepting both means
+ * neither file breaks the app if it's re-exported in the other shape
+ * later.
+ */
+export function extractCodeListArray(json: unknown, preferredKeys: string[]): unknown[] | undefined {
+  if (Array.isArray(json)) return json;
+  if (json && typeof json === "object") {
+    for (const key of preferredKeys) {
+      const value = (json as Record<string, unknown>)[key];
+      if (Array.isArray(value)) return value;
+    }
+  }
+  return undefined;
+}
+
+function isValidCodeListEntry(entry: unknown): entry is { codeValue: string; codeName: string; order: number } {
+  const e = entry as Record<string, unknown>;
+  return typeof e?.codeValue === "string" && typeof e?.codeName === "string" && typeof e?.order === "number";
+}
+
+/**
  * Loads the GS1 Sector codelist from the definitions repo
  * (registry/sectors.jsonld — see /sectors.schema.json for the contract).
  * This is the runtime source of truth; src/config/sectors.ts only holds a
@@ -56,17 +83,37 @@ export async function loadManifest(): Promise<RegistryManifest> {
 export async function loadSectors(): Promise<Gs1Sector[]> {
   const url = `${DEFINITIONS_BASE_URL}/${SECTORS_PATH.replace(/^\//, "")}`;
   const json = await fetchJson(url);
-  if (!Array.isArray(json)) {
-    throw new RegistryFetchError("Sector codelist is not an array", url);
+  const entries = extractCodeListArray(json, ["sectors"]);
+  if (!entries) {
+    throw new RegistryFetchError("Sector codelist is not an array (or {sectors:[...]} object)", url);
   }
-  const sectors = json as Gs1Sector[];
-  const valid = sectors.every(
-    (s) => typeof s?.codeValue === "string" && typeof s?.codeName === "string" && typeof s?.order === "number"
-  );
-  if (!valid) {
+  if (!entries.every(isValidCodeListEntry)) {
     throw new RegistryFetchError("Sector codelist entries are missing required fields", url);
   }
+  const sectors = entries as unknown as Gs1Sector[];
   return [...sectors].sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Loads the GS1 Domain codelist from the definitions repo
+ * (registry/domains.jsonld — see /domains.schema.json for the contract),
+ * analogous to loadSectors() above. Provides the canonical display name
+ * for a domain slug, used ahead of the manifest's own auto-generated
+ * `DomainEntry.label` wherever a domain name is shown. Hand-maintained,
+ * like sectors.jsonld — generate-manifest.mjs never writes this file.
+ */
+export async function loadDomains(): Promise<Gs1Domain[]> {
+  const url = `${DEFINITIONS_BASE_URL}/${DOMAINS_PATH.replace(/^\//, "")}`;
+  const json = await fetchJson(url);
+  const entries = extractCodeListArray(json, ["domains", "sectors"]);
+  if (!entries) {
+    throw new RegistryFetchError("Domain codelist is not an array (or {domains:[...]} object)", url);
+  }
+  if (!entries.every(isValidCodeListEntry)) {
+    throw new RegistryFetchError("Domain codelist entries are missing required fields", url);
+  }
+  const domains = entries as unknown as Gs1Domain[];
+  return [...domains].sort((a, b) => a.order - b.order);
 }
 
 /** Picks the current (or, failing that, the newest staging) artifact of a given kind. */

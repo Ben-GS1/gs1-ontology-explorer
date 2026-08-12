@@ -226,6 +226,90 @@ both sides already selected — `TermPage.tsx` reads `compareA`/`compareB`
 from the URL, seeds the compare panel from them, and opens it
 automatically.
 
+## 2g. Hash-URI terms (…/voc/data#term) also resolve
+
+Some published vocabularies address individual terms as URL *fragments*
+of one shared document (`rail:railRunDistance` =
+`https://gs1-epcis-reg.org/rail/voc/data#railRunDistance`) rather than as
+separate paths (`/rail/railRunDistance`). Fragments are never sent to a
+server by any browser, so this can only be resolved client-side:
+`HashFragmentRedirect` in `src/App.tsx` reads `window.location.hash` once
+the app shell has loaded and silently redirects
+`/rail/voc/data#railRunDistance` to the SPA's own `/rail/railRunDistance`
+route. Server-side, `api/src/functions/resolve.js` was previously
+misreading the extra path segment (`/voc/data`) as a term name for
+`/rail/voc/data` — it now recognises that shape and, for RDF-negotiating
+clients, redirects to the whole vocabulary document instead of a
+guessed-and-likely-wrong fragment (the client resolves the actual
+fragment itself); for browsers it serves the app shell exactly as before,
+letting the client-side redirect above take over.
+
+## 2h. Linking known external types to their real definition
+
+On the term detail page, `rdf:type` values are linked to their external
+definition where one is reliably known —
+`src/lib/vocabLinks.ts::resolveTypeDefinitionUrl()` — covering
+`schema:`/schema.org (links to the type's own IRI, already the canonical
+page), `gs1:`/GS1 Web Vocabulary (links to `https://ref.gs1.org/voc/{name}`,
+which is **not** the same host as the raw namespace IRI), the core W3C
+vocabularies (`rdf:`, `rdfs:`, `owl:`, `xsd:`), and falls back to linking
+any other already-expanded absolute IRI to itself. Recognises both
+compact (`gs1:MeasurementType`) and expanded forms, since types are often
+left compact when their prefix is only defined in a remote `@context`
+this app deliberately doesn't fetch (see `vocabParser.ts`). Returns
+`undefined` — rendered as plain, unlinked text — for anything it can't
+confidently resolve, rather than guessing.
+
+## 2i. SHACL Validator
+
+`/validate` — upload a file, drag-and-drop it, or paste a URL (fetched
+with `Accept: application/ld+json, text/turtle` — a content-negotiating
+resolver URL like `https://gs1-epcis-reg.org/rail/geo` returns the
+machine-readable form automatically, the same way `curl -H "Accept:
+application/ld+json"` does). The validator then:
+
+1. **Detects which domain the data belongs to** — `detectDomainForData()`
+   in `src/lib/shaclAdapter.ts` loads every published domain's term IRIs
+   and ranks domains by how many of the data's used predicate/type IRIs
+   they define. Manually overridable via a dropdown; not a hard
+   requirement to proceed.
+2. **Resolves shapes to validate against** — every published SHACL file
+   for that domain+version if any exist (shown as a checklist so specific
+   files can be included/excluded — "gezielt nur mit denen validieren");
+   otherwise a shapes graph **heuristically inferred from the domain's
+   own ontology** (`inferShapesFromOntology()` — one `sh:NodeShape` per
+   OWL/RDFS class, `sh:property` per property whose `rdfs:domain` matches,
+   `sh:datatype`/`sh:class` from `rdfs:range` where stated). Inferred
+   shapes are **always** presented with an explicit "⚠️ estimated rules"
+   banner — never silently treated as authoritative, since plain RDFS/OWL
+   gives no reliable basis for cardinality (`sh:minCount`/`sh:maxCount`
+   are deliberately never guessed).
+3. **Runs SHACL validation** (`rdf-validate-shacl`) and shows a compact
+   report — conforms yes/no, violation/warning/note counts — with each
+   result expandable for full detail (focus node, path, source shape,
+   constraint, offending value).
+
+**Also offered in context**: the domain page has a "Validate data against
+this domain" link scoped to whichever domain/version you're already
+looking at (`/validate?domain=rail&status=current`), so if that domain
+already has SHACL files published, they're pre-selected immediately —
+satisfying "wo im entsprechenden Ordner ein oder mehrere SHACL existieren,
+kann gezielt (nur) mit denen validiert werden" without a separate lookup
+step.
+
+**Built to be extractable.** All of the actual SHACL logic — RDF parsing,
+the `rdf-validate-shacl` wrapper, shape inference, domain detection —
+lives in `src/validator-core/`, which has **zero imports from the rest of
+this app** (only `n3`, `jsonld`, `rdf-validate-shacl`, `@rdfjs/dataset`).
+See `src/validator-core/README.md` for the exact steps to copy that
+folder into a standalone project. Only the thin glue layer
+(`src/lib/shaclAdapter.ts`, which knows about the GS1 manifest) and the
+React UI (`src/pages/ValidatePage.tsx`, `src/components/validator/*`)
+are app-specific and would need to be rewritten for a different host app.
+The whole engine (`n3` + `jsonld` + `rdf-validate-shacl`, ~200KB gzipped)
+is lazy-loaded — `App.tsx` code-splits `/validate` behind `React.lazy`, so
+it never loads for anyone just browsing ontologies.
+
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 
 `src/lib/vocabParser.ts` renders **any** JSON-LD vocabulary/ontology file

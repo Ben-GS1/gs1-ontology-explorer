@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
@@ -130,9 +130,17 @@ export function DomainPage() {
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wide text-ink-400">
-          {t("domain.artifacts")}
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-ink-400">
+            {t("domain.artifacts")}
+          </h2>
+          <Link
+            to={`/validate?domain=${domain.slug}&status=${status}${effectiveVersionTag ? `&v=${effectiveVersionTag}` : ""}`}
+            className="text-xs font-medium text-signal-dim hover:underline"
+          >
+            {t("validator.validateThisDomain")} →
+          </Link>
+        </div>
         {artifactsForStatus.length > 0 ? (
           <ArtifactList artifacts={artifactsForStatus} />
         ) : (

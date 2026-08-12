@@ -32,6 +32,12 @@ export function Header() {
           >
             {t("nav.search")}
           </Link>
+          <Link
+            to="/validate"
+            className={location.pathname.startsWith("/validate") ? "text-signal-light" : "text-ink-200 hover:text-ink-50"}
+          >
+            {t("nav.validate")}
+          </Link>
         </nav>
       </div>
     </header>

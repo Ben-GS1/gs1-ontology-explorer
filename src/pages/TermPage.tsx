@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import { sectorByCode } from "@/config/sectors";
 import { useDomain, useDomains, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
 import { domainDisplayLabel } from "@/config/domains";
+import { resolveTypeDefinitionUrl } from "@/lib/vocabLinks";
 import { VersionSelect, versionOptionFromKey } from "@/components/VersionSelect";
 import { VersionCompare } from "@/components/VersionCompare";
 import type { VersionOption } from "@/lib/registryClient";
@@ -128,14 +129,27 @@ export function TermPage() {
       {term.types.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-ink-400">{t("term.typeLabel")}</span>
-          {term.types.map((ty) => (
-            <span
-              key={ty}
-              className="term-id rounded-sm border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[11px] text-ink-500"
-            >
-              {ty}
-            </span>
-          ))}
+          {term.types.map((ty) => {
+            const href = resolveTypeDefinitionUrl(ty);
+            const chipClass =
+              "term-id rounded-sm border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[11px] text-ink-500";
+            return href ? (
+              <a
+                key={ty}
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={t("term.externalDefinition") ?? undefined}
+                className={`${chipClass} hover:border-signal/50 hover:text-signal-dim`}
+              >
+                {ty}
+              </a>
+            ) : (
+              <span key={ty} className={chipClass}>
+                {ty}
+              </span>
+            );
+          })}
         </div>
       )}
 

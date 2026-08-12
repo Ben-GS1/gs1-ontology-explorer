@@ -35,7 +35,7 @@
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-site"
 
-    "Access-Control-Allow-Origin": "https://gs1-epcis-reg.org",
+    "Access-Control-Allow-Origin": "https://gs1-switzerland.github.io",
     "Access-Control-Allow-Methods": "GET",
     "Access-Control-Allow-Headers": "*"
   },

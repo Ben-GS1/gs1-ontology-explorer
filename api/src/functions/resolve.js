@@ -29,6 +29,12 @@ const MEDIA_TYPE_TO_KIND = {
  *       - RDF media types -> 303 to the domain's vocabulary artifact's
  *         `source`, with a #localName fragment for term requests.
  *       - text/html (browsers, default) -> 200 with the SPA app shell.
+ *     A path with more than one extra segment under the domain (e.g.
+ *     /rail/voc/data — a "hash URI" vocabulary's own namespace base, whose
+ *     real per-term addresses are .../data#term) is treated the same way
+ *     minus the fragment guess, since fragments never reach the server at
+ *     all — see the comment further down for how the term actually gets
+ *     resolved in that case.
  *
  * staticwebapp.config.json rewrites every otherwise-unmatched path to
  * /api/resolve while preserving the original request path in the
@@ -60,7 +66,18 @@ async function resolve(request, context) {
     return { status: 303, headers: { Location: directArtifact.source, Vary: "Accept" } };
   }
 
-  // Case 2: /{domainSlug} or /{domainSlug}/{term} resolver shape.
+  // Case 2: resolver shapes under a known domain.
+  //   /{domainSlug}                    -> domain overview
+  //   /{domainSlug}/{term}             -> a single term (the "slash URI" style)
+  //   /{domainSlug}/anything/deeper    -> typically a "hash URI" vocabulary's
+  //     own namespace base (e.g. /rail/voc/data, whose real terms are
+  //     addressed as /rail/voc/data#term — a fragment, which browsers never
+  //     send to the server at all). We can't know which term was meant
+  //     server-side in that case, so: HTML clients still get the app shell
+  //     (client-side JS then reads the fragment and redirects — see
+  //     HashFragmentRedirect in src/App.tsx); RDF clients get redirected to
+  //     the domain's whole vocabulary document instead of a guessed,
+  //     likely-wrong #fragment, and resolve the term themselves client-side.
   const segments = path.split("/").filter(Boolean);
   const [domainSlug, termName] = segments;
   const domain = domainSlug ? findDomain(manifest, domainSlug) : undefined;
@@ -81,7 +98,8 @@ async function resolve(request, context) {
     // term nodes at "<artifact.source>#<localName>". If your repository
     // instead publishes one file per term, replace this with a
     // manifest-driven per-term URL lookup instead of a fragment.
-    const location = termName ? `${artifact.source}#${encodeURIComponent(termName)}` : artifact.source;
+    const hasExactlyOneExtraSegment = segments.length === 2;
+    const location = hasExactlyOneExtraSegment ? `${artifact.source}#${encodeURIComponent(termName)}` : artifact.source;
     return {
       status: 303,
       headers: { Location: location, Vary: "Accept" },

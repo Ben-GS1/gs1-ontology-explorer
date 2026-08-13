@@ -42,7 +42,7 @@ beyond whatever your project already uses for TypeScript + npm packages.
 | File | Purpose |
 |---|---|
 | `types.ts` | Shared types — `ValidationReport`, `ValidationResultItem`, etc. |
-| `rdf.ts` | `parseJsonLd`, `parseTurtle`, `parseRdfText` (format-sniffing wrapper) |
+| `rdf.ts` | `parseJsonLd`, `parseTurtle`, `parseRdfText` (format-sniffing wrapper). `parseJsonLd`/`parseRdfText` accept an optional `documentLoader` to control how remote `@context` URLs get resolved — the host app can inject its own resolution strategy (e.g. a known url→file map) without this module needing to know anything about it; omit it to use jsonld.js's normal fetch-based default. |
 | `shaclEngine.ts` | `validate(shapeQuads, dataQuads)` — wraps `rdf-validate-shacl`, returns a plain report |
 | `inferShapes.ts` | `inferShapesFromOntology(terms)` — heuristic SHACL shapes from OWL/RDFS classes+properties, for when no real SHACL file exists. **Always present shapes from this function to end users as estimated, not authoritative** — see the doc comment on the function for why. |
 | `detectDomain.ts` | `detectLikelyDomains(dataQuads, candidates)` — ranks known vocabularies by how many of their term IRIs appear in a data graph, for auto-detecting which shapes apply to arbitrary data |

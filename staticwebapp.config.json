@@ -34,10 +34,6 @@
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-site"
-
-    "Access-Control-Allow-Origin": "https://gs1-epcis-reg.org",
-    "Access-Control-Allow-Methods": "GET",
-    "Access-Control-Allow-Headers": "*"
   },
   "responseOverrides": {
     "404": { "rewrite": "/index.html", "statusCode": 200 }

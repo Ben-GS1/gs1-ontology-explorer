@@ -310,6 +310,24 @@ The whole engine (`n3` + `jsonld` + `rdf-validate-shacl`, ~200KB gzipped)
 is lazy-loaded — `App.tsx` code-splits `/validate` behind `React.lazy`, so
 it never loads for anyone just browsing ontologies.
 
+**Resolving remote `@context` URLs reliably.** Real-world documents (e.g.
+EPCIS events) reference their own domain's `@context` by its public URL
+(`https://gs1-epcis-reg.org/rail/rail-context.jsonld`). Fetching that
+client-side only works once the resolver host is live and CORS-friendly
+end-to-end — until then, or for any transient hiccup, jsonld.js reports a
+fairly opaque "Dereferencing a URL did not result in a valid JSON-LD
+object" error. `validator-core/rdf.ts::parseJsonLd()` accepts an
+injectable `documentLoader`; `shaclAdapter.ts::buildManifestDocumentLoader()`
+builds one from the manifest's own `url → source` map, so any `@context`
+URL this registry already publishes resolves straight to its known-good
+GitHub Pages `source` instead of depending on the public resolver host —
+genuinely external contexts still fall through to a normal fetch.
+`ValidatePage.tsx` also translates that jsonld.js error message into a
+plain-language explanation when it does occur (unknown/unlisted host,
+still a real network problem). validator-core stays app-agnostic here
+too — it only knows "an optional loader function", never anything about
+the GS1 manifest itself.
+
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 
 `src/lib/vocabParser.ts` renders **any** JSON-LD vocabulary/ontology file

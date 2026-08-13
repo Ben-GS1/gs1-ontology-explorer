@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import type { Quad } from "n3";
 import { useManifest } from "@/hooks/useRegistry";
 import {
+  buildManifestDocumentLoader,
   detectDomainForData,
   findShaclArtifacts,
   loadShaclArtifactQuads,
@@ -17,6 +18,25 @@ import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
 import type { Artifact, DomainEntry } from "@/types/registry";
 
 type Step = "input" | "shapes" | "report";
+
+/**
+ * jsonld.js reports a failed remote @context fetch with a fairly opaque
+ * message ("Dereferencing a URL did not result in a valid JSON-LD
+ * object..."). Since that's the single most common real-world failure
+ * (an unreachable or not-yet-CORS-enabled context host) and users can't
+ * be expected to know that a "parse error" is really a network problem
+ * one level down, detect that pattern and explain it directly instead.
+ */
+function explainParseError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/dereferencing a url/i.test(message) || /loading document failed/i.test(message)) {
+    const url = message.match(/URL:\s*"?([^"\s]+)"?/i)?.[1];
+    return url
+      ? `Could not load the remote @context "${url}". This is usually because that host isn't reachable yet, or doesn't allow cross-origin requests (CORS) from this site. If it's a URL this registry itself publishes (e.g. under gs1-epcis-reg.org), it may not have a live custom domain configured yet — try again once it does, or fetch/paste the data from its GitHub Pages location instead.`
+      : `Could not load a remote @context referenced by this document (unreachable host, or no CORS support). Original error: ${message}`;
+  }
+  return message;
+}
 
 export function ValidatePage() {
   const { t } = useTranslation(["common", "errors"]);
@@ -49,6 +69,17 @@ export function ValidatePage() {
     [manifest.data, domainSlug]
   );
 
+  // Resolves any @context URL this app already indexes (every manifest
+  // artifact's public url) straight to its known-good `source`, instead
+  // of relying on the public resolver host being live and CORS-friendly
+  // — see buildManifestDocumentLoader()'s doc comment for why that
+  // matters. Falls through to a plain fetch for anything not indexed
+  // (e.g. a genuinely external context).
+  const documentLoader = useMemo(
+    () => (manifest.data ? buildManifestDocumentLoader(manifest.data) : undefined),
+    [manifest.data]
+  );
+
   // If arriving from a domain page's "Validate" link (?domain=rail&status=current),
   // skip straight to shape resolution once the manifest and data are both ready.
   const cameFromDomainContext = Boolean(searchParams.get("domain"));
@@ -57,7 +88,7 @@ export function ValidatePage() {
     setParseError(null);
     setBusy(true);
     try {
-      const { quads, format } = await parseRdfText(input.text, undefined, input.contentType);
+      const { quads, format } = await parseRdfText(input.text, undefined, input.contentType, documentLoader);
       setDataQuads(quads);
       setDataFormat(format);
       setDataLabel(input.label);
@@ -75,7 +106,7 @@ export function ValidatePage() {
         }
       }
     } catch (err) {
-      setParseError(err instanceof Error ? err.message : String(err));
+      setParseError(explainParseError(err));
     } finally {
       setBusy(false);
     }
@@ -95,22 +126,26 @@ export function ValidatePage() {
       if (realShacl.length > 0) {
         try {
           const loaded = await Promise.all(
-            realShacl.map(async (artifact) => ({ artifact, quads: await loadShaclArtifactQuads(artifact), selected: true }))
+            realShacl.map(async (artifact) => ({
+              artifact,
+              quads: await loadShaclArtifactQuads(artifact, documentLoader),
+              selected: true,
+            }))
           );
           if (!cancelled) setShaclFiles(loaded);
         } catch (err) {
-          if (!cancelled) setShapesError(err instanceof Error ? err.message : String(err));
+          if (!cancelled) setShapesError(explainParseError(err));
         }
         return;
       }
       try {
-        const resolved = await resolveShapesForDomain(domain, status, versionTag);
+        const resolved = await resolveShapesForDomain(domain, status, versionTag, documentLoader);
         if (cancelled) return;
         setEstimated(true);
         setEstimatedNote(resolved.sourceLabels[0]);
         setShaclFiles([{ artifact: { label: "estimated" } as Artifact, quads: resolved.shapeQuads, selected: true }]);
       } catch (err) {
-        if (!cancelled) setShapesError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) setShapesError(explainParseError(err));
       }
     })();
 
@@ -118,7 +153,7 @@ export function ValidatePage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domain, status, versionTag, step]);
+  }, [domain, status, versionTag, step, documentLoader]);
 
   async function runValidation() {
     if (!dataQuads) return;

@@ -3,6 +3,7 @@ import {
   inferShapesFromOntology,
   parseRdfText,
   type DomainCandidate,
+  type JsonLdDocumentLoader,
   type OntologyTermLike,
 } from "@/validator-core";
 import type { Quad } from "n3";
@@ -19,6 +20,44 @@ export interface ResolvedShapes {
 
 function toOntologyTermLike(term: VocabTerm): OntologyTermLike {
   return { id: term.id, label: term.label, types: term.types, relations: term.relations };
+}
+
+/**
+ * Builds a jsonld.js document loader that resolves any @context (or other
+ * referenced document) URL the manifest already knows about — every
+ * artifact's public `url` — directly from its `source` (the actual,
+ * always-reachable GitHub Pages location), instead of the public URL
+ * itself. This matters because the public resolver host
+ * (e.g. gs1-epcis-reg.org) may not have its custom domain live yet, or —
+ * once it is — a browser's cross-origin fetch of it still depends on the
+ * resolver correctly following redirects through to a CORS-enabled final
+ * response; going straight to the known-good `source` sidesteps both
+ * failure modes entirely for anything this app already indexes.
+ *
+ * URLs the manifest doesn't know about (e.g. a genuinely external context
+ * like ref.gs1.org's own EPCIS context) fall through to a plain fetch —
+ * this is deliberately a *thin* fallback, not jsonld.js's full default
+ * loader, so behaviour stays simple and predictable; it covers every
+ * practical case (any CORS-enabled JSON document) without pulling in
+ * jsonld.js's Node-oriented default loader internals.
+ */
+export function buildManifestDocumentLoader(manifest: RegistryManifest): JsonLdDocumentLoader {
+  const urlToSource = new Map<string, string>();
+  for (const domain of manifest.domains) {
+    for (const artifact of domain.artifacts) {
+      urlToSource.set(artifact.url, artifact.source);
+    }
+  }
+
+  return async (url: string) => {
+    const fetchUrl = urlToSource.get(url) ?? url;
+    const res = await fetch(fetchUrl, { headers: { Accept: "application/ld+json, application/json;q=0.9" } });
+    if (!res.ok) {
+      throw new Error(`Could not load ${fetchUrl}${fetchUrl !== url ? ` (resolved from ${url})` : ""}: HTTP ${res.status}`);
+    }
+    const document = await res.json();
+    return { document, documentUrl: url };
+  };
 }
 
 /**
@@ -46,10 +85,10 @@ export async function fetchRdfWithContentNegotiation(
 }
 
 /** Fetches and parses one SHACL artifact into quads — the primitive the per-file selection UI in ValidatePage builds on. */
-export async function loadShaclArtifactQuads(artifact: Artifact): Promise<Quad[]> {
+export async function loadShaclArtifactQuads(artifact: Artifact, documentLoader?: JsonLdDocumentLoader): Promise<Quad[]> {
   const { text, contentType } = await fetchRdfWithContentNegotiation(artifact.source);
   const format = artifact.mediaType === "text/turtle" ? "turtle" : "jsonld";
-  const { quads } = await parseRdfText(text, format, contentType ?? undefined);
+  const { quads } = await parseRdfText(text, format, contentType ?? undefined, documentLoader);
   return quads;
 }
 
@@ -72,12 +111,13 @@ export function findShaclArtifacts(domain: DomainEntry, status: Artifact["status
 export async function resolveShapesForDomain(
   domain: DomainEntry,
   status: Artifact["status"],
-  versionTag?: string
+  versionTag?: string,
+  documentLoader?: JsonLdDocumentLoader
 ): Promise<ResolvedShapes> {
   const shaclArtifacts = findShaclArtifacts(domain, status, versionTag);
 
   if (shaclArtifacts.length > 0) {
-    const parsed = await Promise.all(shaclArtifacts.map(loadShaclArtifactQuads));
+    const parsed = await Promise.all(shaclArtifacts.map((a) => loadShaclArtifactQuads(a, documentLoader)));
     return {
       shapeQuads: parsed.flat(),
       estimated: false,

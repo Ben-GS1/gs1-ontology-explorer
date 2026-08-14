@@ -312,21 +312,40 @@ it never loads for anyone just browsing ontologies.
 
 **Resolving remote `@context` URLs reliably.** Real-world documents (e.g.
 EPCIS events) reference their own domain's `@context` by its public URL
-(`https://gs1-epcis-reg.org/rail/rail-context.jsonld`). Fetching that
-client-side only works once the resolver host is live and CORS-friendly
-end-to-end — until then, or for any transient hiccup, jsonld.js reports a
-fairly opaque "Dereferencing a URL did not result in a valid JSON-LD
-object" error. `validator-core/rdf.ts::parseJsonLd()` accepts an
-injectable `documentLoader`; `shaclAdapter.ts::buildManifestDocumentLoader()`
-builds one from the manifest's own `url → source` map, so any `@context`
-URL this registry already publishes resolves straight to its known-good
-GitHub Pages `source` instead of depending on the public resolver host —
-genuinely external contexts still fall through to a normal fetch.
-`ValidatePage.tsx` also translates that jsonld.js error message into a
-plain-language explanation when it does occur (unknown/unlisted host,
-still a real network problem). validator-core stays app-agnostic here
-too — it only knows "an optional loader function", never anything about
-the GS1 manifest itself.
+(`https://gs1-epcis-reg.org/rail/rail-context.jsonld`), and often a
+*further* external context on top of that (e.g. GS1's own
+`https://ref.gs1.org/standards/epcis/epcis-context.jsonld`). Fetching
+either client-side depends on the target host being reachable *and*
+setting `Access-Control-Allow-Origin` — which this app's own resolver
+does once its custom domain is live (see below), but which a genuinely
+third-party host like `ref.gs1.org` may or may not do at all, regardless
+of anything this app controls.
+
+Two layers handle this:
+1. `validator-core/rdf.ts::parseJsonLd()` accepts an injectable
+   `documentLoader`; `shaclAdapter.ts::buildManifestDocumentLoader()`
+   builds one from the manifest's own `url → source` map, so any
+   `@context` URL this registry itself publishes resolves straight to
+   its known-good GitHub Pages `source` — sidestepping the "is
+   gs1-epcis-reg.org live yet" question entirely.
+2. For anything **not** in that map (genuinely external references),
+   `shaclAdapter.ts::fetchTextWithProxyFallback()` tries a direct browser
+   fetch first, and if that fails, retries through this app's own
+   `GET /api/proxy?url=...` (`api/src/functions/proxyFetch.js`) — a
+   server-side fetch is never subject to browser CORS, so relaying the
+   response with `Access-Control-Allow-Origin: *` added lets the browser
+   read it regardless of whether the upstream host itself supports CORS.
+   The proxy is deliberately narrow (GET only, http/s only, ~10MB body
+   cap, no headers/cookies forwarded either direction) to limit its use
+   as an open relay — see the doc comment in that file. Both
+   `buildManifestDocumentLoader` and `fetchRdfWithContentNegotiation` (the
+   URL-input path) use this fallback.
+
+`ValidatePage.tsx` also translates jsonld.js's own opaque loader-failure
+error message into a plain-language explanation for the (now rarer) case
+where both the direct fetch and the proxy fail. validator-core stays
+app-agnostic throughout — it only knows "an optional loader function",
+never anything about the GS1 manifest or this app's own proxy endpoint.
 
 ## 3. Generic JSON-LD rendering, like schema.org's term pages
 

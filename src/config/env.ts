@@ -43,7 +43,7 @@ export const DOMAINS_PATH: string =
 // the UI (e.g. https://gs1-epcis-reg.org/rail/my_term). This does NOT have
 // to be the host the SPA itself is served from.
 export const RESOLVER_HOST: string =
-  import.meta.env.VITE_RESOLVER_HOST ?? "https://ref.gs1.ch/";
+  import.meta.env.VITE_RESOLVER_HOST ?? "https://ref.gs1.ch/voc/";
 
 export const DEFAULT_LANGUAGE = "en";
 export const SUPPORTED_LANGUAGES = ["en"] as const;

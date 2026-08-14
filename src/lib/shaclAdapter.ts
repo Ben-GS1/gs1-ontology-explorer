@@ -23,6 +23,44 @@ function toOntologyTermLike(term: VocabTerm): OntologyTermLike {
 }
 
 /**
+ * Fetches a URL, falling back to this app's own same-origin proxy
+ * (api/src/functions/proxyFetch.js, GET /api/proxy?url=...) if the direct
+ * browser fetch fails — which, for a third-party host, is often actually
+ * a CORS rejection (no Access-Control-Allow-Origin) rather than the host
+ * being unreachable at all: the proxy's server-side fetch is never
+ * subject to CORS, and relays the response with that header added. Used
+ * for anything the validator needs to dereference that isn't already
+ * known to come from a CORS-reliable host (GitHub Pages already sends
+ * Access-Control-Allow-Origin: *, so this fallback is rarely even
+ * exercised for this app's own manifest-known artifacts — it mainly
+ * matters for genuinely external references like a data document's own
+ * remote @context).
+ */
+async function fetchTextWithProxyFallback(
+  url: string,
+  accept: string
+): Promise<{ text: string; contentType: string | null }> {
+  try {
+    const res = await fetch(url, { headers: { Accept: accept } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { text: await res.text(), contentType: res.headers.get("content-type") };
+  } catch (directError) {
+    try {
+      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => undefined);
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      return { text: await res.text(), contentType: res.headers.get("content-type") };
+    } catch (proxyError) {
+      const directMsg = directError instanceof Error ? directError.message : String(directError);
+      const proxyMsg = proxyError instanceof Error ? proxyError.message : String(proxyError);
+      throw new Error(`Could not load ${url} (direct: ${directMsg}; via proxy: ${proxyMsg})`);
+    }
+  }
+}
+
+/**
  * Builds a jsonld.js document loader that resolves any @context (or other
  * referenced document) URL the manifest already knows about — every
  * artifact's public `url` — directly from its `source` (the actual,
@@ -35,11 +73,10 @@ function toOntologyTermLike(term: VocabTerm): OntologyTermLike {
  * failure modes entirely for anything this app already indexes.
  *
  * URLs the manifest doesn't know about (e.g. a genuinely external context
- * like ref.gs1.org's own EPCIS context) fall through to a plain fetch —
- * this is deliberately a *thin* fallback, not jsonld.js's full default
- * loader, so behaviour stays simple and predictable; it covers every
- * practical case (any CORS-enabled JSON document) without pulling in
- * jsonld.js's Node-oriented default loader internals.
+ * like ref.gs1.org's own EPCIS context) fall through to
+ * fetchTextWithProxyFallback — a plain fetch first, then this app's own
+ * CORS-relay proxy if that fails, rather than jsonld.js's full default
+ * loader.
  */
 export function buildManifestDocumentLoader(manifest: RegistryManifest): JsonLdDocumentLoader {
   const urlToSource = new Map<string, string>();
@@ -51,12 +88,8 @@ export function buildManifestDocumentLoader(manifest: RegistryManifest): JsonLdD
 
   return async (url: string) => {
     const fetchUrl = urlToSource.get(url) ?? url;
-    const res = await fetch(fetchUrl, { headers: { Accept: "application/ld+json, application/json;q=0.9" } });
-    if (!res.ok) {
-      throw new Error(`Could not load ${fetchUrl}${fetchUrl !== url ? ` (resolved from ${url})` : ""}: HTTP ${res.status}`);
-    }
-    const document = await res.json();
-    return { document, documentUrl: url };
+    const { text } = await fetchTextWithProxyFallback(fetchUrl, "application/ld+json, application/json;q=0.9");
+    return { document: JSON.parse(text), documentUrl: url };
   };
 }
 
@@ -68,20 +101,17 @@ export function buildManifestDocumentLoader(manifest: RegistryManifest): JsonLdD
  * representation instead of the HTML page for this request, the same way
  * curl -H "Accept: application/ld+json" does. Plain file URLs (e.g. a
  * raw GitHub Pages .jsonld link) simply ignore the header and return
- * their one representation, which also works fine here.
+ * their one representation, which also works fine here. Falls back to
+ * this app's own CORS-relay proxy if the direct fetch fails — see
+ * fetchTextWithProxyFallback().
  */
 export async function fetchRdfWithContentNegotiation(
   url: string
 ): Promise<{ text: string; contentType: string | null }> {
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/ld+json, text/turtle;q=0.9, application/rdf+xml;q=0.8, application/json;q=0.5",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Request to ${url} failed with ${res.status}`);
-  }
-  return { text: await res.text(), contentType: res.headers.get("content-type") };
+  return fetchTextWithProxyFallback(
+    url,
+    "application/ld+json, text/turtle;q=0.9, application/rdf+xml;q=0.8, application/json;q=0.5"
+  );
 }
 
 /** Fetches and parses one SHACL artifact into quads — the primitive the per-file selection UI in ValidatePage builds on. */

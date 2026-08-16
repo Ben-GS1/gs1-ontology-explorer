@@ -93,7 +93,7 @@ Dinge bedeuten:
 
 | Feld | Beispiel | Zweck |
 |---|---|---|
-| `url` | `https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld` | **Öffentlicher, stabiler Identifier.** Das ist die URL, die in `@context`/`@id` anderer Dateien referenziert wird, die in der UI angezeigt/verlinkt wird, und auf die Linked-Data-Clients per Content Negotiation umgeleitet werden. |
+| `url` | `https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld` | **Öffentlicher, stabiler Identifier.** Das ist die URL, die in `@context`/`@id` anderer Dateien referenziert wird, die in der UI angezeigt/verlinkt wird, und auf die Linked-Data-Clients per Content Negotiation umgeleitet werden. |
 | `source` | `https://gs1-switzerland.github.io/WebOntology/current/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld` | **Physischer Speicherort**, von dem die SPA und die Resolver-Function die tatsächlichen Bytes holen. |
 
 Warum getrennt: `url` ist die "Cool URI" — die Identität der Ressource,
@@ -104,10 +104,10 @@ Resolver-Function (`api/src/functions/resolve.js`) matched eingehende
 Requests gegen jedes `artifact.url` im Manifest und leitet per 303 auf
 `artifact.source` um — das funktioniert für beliebige Pfade, nicht nur
 für das `/domain/term`-Muster, und **ohne dass die Pfadstruktur auf
-`gs1-epcis-reg.org` real irgendwo existieren muss.**
+`ref.gs1.ch` real irgendwo existieren muss.**
 
-Kurz: **Für `url` immer die `gs1-epcis-reg.org`-Adresse eintragen** (so
-wie im Brief mit `https://gs1-epcis-reg.org/rail/rail-context.jsonld`
+Kurz: **Für `url` immer die `ref.gs1.ch`-Adresse eintragen** (so
+wie im Brief mit `https://ref.gs1.ch/voc/rail/rail-context.jsonld`
 vorgegeben), **für `source` die tatsächliche GitHub-Pages-Adresse.**
 
 ---
@@ -188,11 +188,11 @@ erneut auslösen) → GitHub Actions baut und deployt automatisch.
 
 ## 5. Eigene Domain (optional, aber im Brief vorausgesetzt)
 
-Damit die Resolver-URLs wie `https://gs1-epcis-reg.org/rail/my_term`
+Damit die Resolver-URLs wie `https://ref.gs1.ch/rail/my_term`
 funktionieren, muss diese Domain auf die Static Web App zeigen:
 
 1. Azure Portal → Static Web App → **Custom domains** → **Add**
-2. Domain eingeben (`gs1-epcis-reg.org`), Azure zeigt dir die nötigen
+2. Domain eingeben (`ref.gs1.ch`), Azure zeigt dir die nötigen
    DNS-Einträge (i.d.R. ein `CNAME` bzw. `TXT` zur Validierung, bei
    Apex-Domains ein `ALIAS`/`ANAME` je nach DNS-Provider)
 3. Diese Einträge beim DNS-Provider der Domain setzen
@@ -209,16 +209,16 @@ Request und nimmt nichts über den `*.azurestaticapps.net`-Hostnamen an.
 
 ```bash
 # HTML-Ansicht (Browser-Fall):
-curl -sI -H "Accept: text/html" https://gs1-epcis-reg.org/rail/geo
+curl -sI -H "Accept: text/html" https://ref.gs1.ch/rail/geo
 # -> 200, Content-Type: text/html
 
 # Linked-Data-Fall (Term-Auflösung):
-curl -sI -H "Accept: application/ld+json" https://gs1-epcis-reg.org/rail/geo
+curl -sI -H "Accept: application/ld+json" https://ref.gs1.ch/rail/geo
 # -> 303, Location: https://…/gs1RailVoc.jsonld#geo
 
 # Direkter Artefakt-Pfad (die "url" aus dem Manifest):
-curl -sI https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld
-# -> 303, Location: https://gs1-switzerland.github.io/WebOntology/rail/voc/data/gs1RailVoc.jsonld
+curl -sI https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld
+# -> 303, Location: https://gs1-switzerland.github.io/WebOntology/current/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld
 ```
 
 Und im Browser: Startseite lädt die Sektoren-Kacheln (aus

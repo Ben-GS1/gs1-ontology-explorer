@@ -5,7 +5,7 @@ export type ArtifactStatus = "current" | "staging" | "deprecated";
 export interface Artifact {
   /**
    * Stable, public, dereferenceable identifier under the resolver host,
-   * e.g. https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld. This is
+   * e.g. https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld. This is
    * the URL other JSON-LD files' @context/@id entries point at, the URL
    * shown/linked to in the UI, and the URL RDF-negotiation redirects to.
    * It never has to correspond to a real path on any physical host — the

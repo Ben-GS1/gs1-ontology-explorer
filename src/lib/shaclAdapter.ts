@@ -1,8 +1,10 @@
 import {
   detectLikelyDomains,
+  extractContextUrls,
   inferShapesFromOntology,
   parseRdfText,
   type DomainCandidate,
+  type DomainMatch,
   type JsonLdDocumentLoader,
   type OntologyTermLike,
 } from "@/validator-core";
@@ -170,7 +172,49 @@ export async function resolveShapesForDomain(
  * overlap with the given data, for the "detect which domain this data
  * belongs to" step in the standalone/global validator.
  */
-export async function detectDomainForData(dataQuads: Quad[], manifest: RegistryManifest) {
+/**
+ * Detects every domain a data document plausibly belongs to — not just
+ * the single best guess — since one document (e.g. an EPCIS document)
+ * can legitimately mix terms from several domains at once (GS1 Discovery
+ * Service "disco" master-data terms alongside "rail" sensor terms in the
+ * same event, say). Two signals are combined:
+ *
+ *  1. **@context URL matching** (primary, checked first): every string
+ *     URL in the document's own top-level @context is compared against
+ *     every artifact `url` published in the manifest. A document that
+ *     explicitly declares `"@context": ["https://gs1-epcis-reg.org/rail/rail-context.jsonld"]`
+ *     is about as strong a signal as exists — the author said which
+ *     vocabulary this is. This alone resolves the common case correctly
+ *     even before any domain vocabulary has been loaded.
+ *  2. **Term-IRI overlap** (secondary, always also run): catches domains
+ *     used without an explicit matching @context entry (e.g. terms
+ *     brought in via an inline prefix mapping, or a document whose
+ *     @context references a *different* URL than the one this manifest
+ *     happens to publish for the same vocabulary).
+ *
+ * Every domain flagged by either signal is returned — callers should
+ * treat this as "these domains are all relevant", not "pick the top
+ * one". `via` on each match records which signal(s) found it, purely for
+ * transparency in the UI (e.g. "detected via @context" vs "detected via
+ * term overlap").
+ */
+export async function detectDomainsForData(
+  rawDoc: unknown,
+  dataQuads: Quad[],
+  manifest: RegistryManifest
+): Promise<DomainMatch[]> {
+  const urlToDomainSlug = new Map<string, string>();
+  for (const domain of manifest.domains) {
+    for (const artifact of domain.artifacts) {
+      urlToDomainSlug.set(artifact.url, domain.slug);
+    }
+  }
+  const contextSlugs = new Set(
+    extractContextUrls(rawDoc)
+      .map((url) => urlToDomainSlug.get(url))
+      .filter((slug): slug is string => Boolean(slug))
+  );
+
   const candidates: DomainCandidate[] = [];
   await Promise.all(
     manifest.domains.map(async (domain) => {
@@ -182,5 +226,21 @@ export async function detectDomainForData(dataQuads: Quad[], manifest: RegistryM
       }
     })
   );
-  return detectLikelyDomains(dataQuads, candidates);
+  const termMatches = detectLikelyDomains(dataQuads, candidates);
+  const termSlugs = new Set(termMatches.map((m) => m.domainSlug));
+
+  const byOverlap = new Map(termMatches.map((m) => [m.domainSlug, m.overlapCount]));
+  const allSlugs = new Set([...contextSlugs, ...termSlugs]);
+
+  const combined: DomainMatch[] = Array.from(allSlugs).map((domainSlug) => ({
+    domainSlug,
+    overlapCount: byOverlap.get(domainSlug) ?? 0,
+    via: contextSlugs.has(domainSlug) ? "context" : "terms",
+  }));
+
+  // @context matches first (the stronger signal), each tier then by overlap count.
+  return combined.sort((a, b) => {
+    if (a.via !== b.via) return a.via === "context" ? -1 : 1;
+    return b.overlapCount - a.overlapCount;
+  });
 }

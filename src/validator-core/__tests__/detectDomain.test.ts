@@ -1,6 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { detectLikelyDomains, extractUsedTermIris } from "../detectDomain";
+import { detectLikelyDomains, extractContextUrls, extractUsedTermIris } from "../detectDomain";
 import { parseJsonLd } from "../rdf";
+
+describe("extractContextUrls", () => {
+  it("returns a single string @context as a one-element array", () => {
+    expect(extractContextUrls({ "@context": "https://gs1-epcis-reg.org/rail/rail-context.jsonld" })).toEqual([
+      "https://gs1-epcis-reg.org/rail/rail-context.jsonld",
+    ]);
+  });
+
+  it("returns every string entry from an array @context, ignoring inline prefix objects", () => {
+    expect(
+      extractContextUrls({
+        "@context": [
+          "https://gs1-epcis-reg.org/rail/rail-context.jsonld",
+          "https://gs1-epcis-reg.org/disco/disco-context.jsonld",
+          { local: "http://example.org/local#" },
+        ],
+      })
+    ).toEqual([
+      "https://gs1-epcis-reg.org/rail/rail-context.jsonld",
+      "https://gs1-epcis-reg.org/disco/disco-context.jsonld",
+    ]);
+  });
+
+  it("returns an empty array when there's no @context, or it's not a string/array", () => {
+    expect(extractContextUrls({})).toEqual([]);
+    expect(extractContextUrls({ "@context": { local: "http://example.org/local#" } })).toEqual([]);
+    expect(extractContextUrls("not an object")).toEqual([]);
+    expect(extractContextUrls(null)).toEqual([]);
+  });
+});
 
 describe("extractUsedTermIris", () => {
   it("collects predicate IRIs and rdf:type object IRIs, ignoring literal objects", async () => {

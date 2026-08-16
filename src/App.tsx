@@ -17,7 +17,9 @@ const ValidatePage = lazy(() => import("@/pages/ValidatePage").then((m) => ({ de
 
 /**
  * Term IRIs in this app's own vocabularies commonly use the "hash URI"
- * pattern (e.g. rail:railRunDistance = https://gs1-epcis-reg.org/rail/voc/data#railRunDistance)
+ * pattern (e.g. rail:railRunDistance = "<the vocabulary's own base URI>#railRunDistance",
+ * per that file's own @context — a URI baked into the published vocabulary
+ * content itself, independent of this app's own resolver routes)
  * rather than the SPA's own "slash" resolver routes (/rail/railRunDistance).
  * Fragments are never sent to the server, so a link like
  * ".../rail/voc/data#railRunDistance" can only be resolved client-side:
@@ -51,7 +53,7 @@ function HashFragmentRedirect() {
  *   /rail          -> domain overview
  *   /sector/tran   -> sector overview
  * The SPA itself is generally served from a documentation host; the public
- * resolver host (gs1-epcis-reg.org) proxies /{domain}/{term} requests here
+ * resolver host (ref.gs1.ch) proxies /{domain}/{term} requests here
  * for the HTML case and to the raw JSON-LD for the machine-readable case —
  * see api/resolve and staticwebapp.config.json for that split.
  */

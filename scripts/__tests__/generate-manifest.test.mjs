@@ -83,14 +83,14 @@ test("current/ artifacts match the real published manifest.jsonld's URL/source c
     const { scanDomainInPass, publicUrlFor } = await loadGenerator(root);
 
     // Verified against https://github.com/GS1-Switzerland/WebOntology/blob/gh-pages/registry/manifest.jsonld
-    assert.equal(publicUrlFor("rail", "context", "rail-context.jsonld"), "https://gs1-epcis-reg.org/rail/rail-context.jsonld");
+    assert.equal(publicUrlFor("rail", "context", "rail-context.jsonld"), "https://ref.gs1.ch/voc/rail/rail-context.jsonld");
     assert.equal(
       publicUrlFor("rail", "vocabulary", "gs1RailVoc.jsonld"),
-      "https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld"
+      "https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld"
     );
     assert.equal(
       publicUrlFor("rail", "vocabulary", "gs1RailVoc.jsonld", "versions/v1.0.0"),
-      "https://gs1-epcis-reg.org/rail/versions/v1.0.0/voc/data/gs1RailVoc.jsonld"
+      "https://ref.gs1.ch/voc/rail/versions/v1.0.0/gs1RailVoc.jsonld"
     );
 
     const pass = {
@@ -107,7 +107,7 @@ test("current/ artifacts match the real published manifest.jsonld's URL/source c
     assert.equal(domain.artifacts.length, 3, "context + vocabulary + shacl (v1.1.0 current has SHACL)");
 
     const ctx = domain.artifacts.find((a) => a.kind === "context");
-    assert.equal(ctx.url, "https://gs1-epcis-reg.org/rail/rail-context.jsonld");
+    assert.equal(ctx.url, "https://ref.gs1.ch/voc/rail/rail-context.jsonld");
     assert.equal(ctx.version, "1.1.0", "version comes from the vocabulary's own owl:versionInfo");
     assert.equal(ctx.status, "current");
     assert.equal(
@@ -116,7 +116,7 @@ test("current/ artifacts match the real published manifest.jsonld's URL/source c
     );
 
     const shacl = domain.artifacts.find((a) => a.kind === "shacl");
-    assert.equal(shacl.url, "https://gs1-epcis-reg.org/rail/voc/data/Rail-SHACL.json");
+    assert.equal(shacl.url, "https://ref.gs1.ch/voc/rail/Rail-SHACL.json");
     assert.equal(shacl.mediaType, "application/schema+json");
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -182,7 +182,7 @@ test("gh-pages/stage/ (from deploy-stage.yml) becomes 'staging' entries under a 
 
     assert.equal(staging.length, 1);
     assert.equal(staging[0].version, "1.4.0-rc1");
-    assert.equal(staging[0].url, "https://gs1-epcis-reg.org/rail/staging/voc/data/gs1RailVoc.jsonld");
+    assert.equal(staging[0].url, "https://ref.gs1.ch/voc/rail/staging/gs1RailVoc.jsonld");
     assert.equal(
       staging[0].source,
       "https://gs1-switzerland.github.io/WebOntology/stage/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld",
@@ -219,7 +219,7 @@ test("sectorless (shared) domains omit sectorCode entirely", async () => {
     };
     const domain = scanDomainInPass(path.join(root, "current", "shared", "epcis-core"), "epcis-core", undefined, pass);
     assert.equal("sectorCode" in domain, false, "sectorless domains must not have a sectorCode key at all");
-    assert.equal(domain.artifacts[0].url, "https://gs1-epcis-reg.org/epcis-core/epcis-core.jsonld");
+    assert.equal(domain.artifacts[0].url, "https://ref.gs1.ch/voc/epcis-core/epcis-core.jsonld");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

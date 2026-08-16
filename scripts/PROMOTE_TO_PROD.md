@@ -85,7 +85,7 @@ resolves relative to itself, so it should sit right next to
 +          # (current/ + every versions/<tag>/ snapshot) before committing.
 +          GH_PAGES_ROOT="$(pwd)/gh-pages" \
 +          RELEASE_VERSION="${VERSION}" \
-+          PUBLIC_BASE_URL="https://gs1-epcis-reg.org" \
++          PUBLIC_BASE_URL="https://ref.gs1.ch/voc/" \
 +          GH_PAGES_BASE="https://gs1-switzerland.github.io/WebOntology" \
 +          node "$(pwd)/scripts/generate-manifest.mjs"
            cd gh-pages
@@ -148,7 +148,7 @@ history, no manifest regeneration today. Same shape of patch:
 +          # Regenerate the registry manifest so staging changes are
 +          # reflected immediately, not just on the next prod promotion.
 +          GH_PAGES_ROOT="$(pwd)/gh-pages" \
-+          PUBLIC_BASE_URL="https://gs1-epcis-reg.org" \
++          PUBLIC_BASE_URL="https://ref.gs1.ch/voc/" \
 +          GH_PAGES_BASE="https://gs1-switzerland.github.io/WebOntology" \
 +          node "$(pwd)/scripts/generate-manifest.mjs"
            cd gh-pages
@@ -187,7 +187,7 @@ SPA groups them under a "Cross-Sector" section instead of a GS1 sector):
 
 - **`current/`** → `status: "current"` artifacts, at the exact same public
   URLs your hand-written example already used
-  (`https://gs1-epcis-reg.org/rail/rail-context.jsonld`, etc.) — **one
+  (`https://ref.gs1.ch/voc/rail/rail-context.jsonld`, etc.) — **one
   correction**: `source` now points at `.../WebOntology/current/sectors/...`,
   not `.../WebOntology/src/sectors/...` — the `src/` folder is never
   published as-is, it gets flattened into `current/` by your own
@@ -198,7 +198,7 @@ SPA groups them under a "Cross-Sector" section instead of a GS1 sector):
 - **Every existing `versions/<tag>/`** (all of them, not just the one just
   promoted — the deploy script never deletes old version folders) →
   `status: "deprecated"`, each with its own distinct, permanently
-  resolvable public URL: `https://gs1-epcis-reg.org/rail/versions/v1.1.0/voc/data/gs1RailVoc.jsonld`.
+  resolvable public URL: `https://ref.gs1.ch/voc/rail/versions/v1.1.0/gs1RailVoc.jsonld`.
   This is exactly the "veraltete Versionen" browsing the original brief
   asked for — the SPA's domain page now has a version dropdown for these.
   Capped at the 5 most recent by commit date (`MAX_DEPRECATED_VERSIONS`
@@ -206,7 +206,7 @@ SPA groups them under a "Cross-Sector" section instead of a GS1 sector):
   full history.
 - **`gh-pages/stage/`** (written by `deploy-stage.yml` on every push to the
   `stage` branch) → `status: "staging"`, public URL
-  `https://gs1-epcis-reg.org/rail/staging/voc/data/gs1RailVoc.jsonld`
+  `https://ref.gs1.ch/voc/rail/staging/gs1RailVoc.jsonld`
   (the "staging" word in the *public* URL is just a naming choice for
   readability — it doesn't have to match the real folder name `stage/` on
   disk, and doesn't; `source` correctly points at `.../gh-pages/stage/...`).

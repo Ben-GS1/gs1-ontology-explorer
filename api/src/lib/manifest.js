@@ -37,7 +37,7 @@ function pickArtifact(domain, kind, status = "current") {
 
 /**
  * Finds the artifact whose public `url` (e.g.
- * https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld) has the given
+ * https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld) has the given
  * request pathname, across every domain and status. This is how a direct
  * request for an artifact's own stable identifier — not just the
  * /{domain}/{term} resolver shape — gets mapped back to the physical

@@ -65,7 +65,7 @@ import { fileURLToPath } from "node:url";
 // ── Configuration ─────────────────────────────────────────────────────────
 // Root of the gh-pages checkout (the directory containing current/, versions/).
 const GH_PAGES_ROOT = process.env.GH_PAGES_ROOT ? path.resolve(process.env.GH_PAGES_ROOT) : process.cwd();
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "https://gs1-epcis-reg.org").replace(/\/$/, "");
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || "https://ref.gs1.ch/voc/").replace(/\/$/, "");
 // Must match the SPA's DEFINITIONS_BASE_URL (src/config/env.ts) — where
 // GitHub Pages actually serves this checkout's files from.
 const GH_PAGES_BASE = (process.env.GH_PAGES_BASE || "https://gs1-switzerland.github.io/WebOntology").replace(/\/$/, "");
@@ -177,9 +177,9 @@ function publicUrlFor(domainSlug, kind, filename, urlPrefixSegment) {
   if (kind === "context" || kind === "ontology") {
     return `${PUBLIC_BASE_URL}/${domainSlug}/${prefix}${filename}`;
   }
-  // vocabulary + shacl + schema all live under voc/data/, matching the
-  // existing manifest.jsonld (SHACL files sit alongside the vocab files).
-  return `${PUBLIC_BASE_URL}/${domainSlug}/${prefix}voc/data/${filename}`;
+  // vocabulary + shacl + schema all live at the same flat path as
+  // context/ontology now — the earlier "voc/data/" subpath was dropped.
+  return `${PUBLIC_BASE_URL}/${domainSlug}/${prefix}${filename}`;
 }
 
 function kindFor(subfolder, filename) {

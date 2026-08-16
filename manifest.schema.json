@@ -13,7 +13,7 @@
         "type": "object",
         "required": ["slug", "label", "artifacts"],
         "properties": {
-          "slug": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "URL path segment, e.g. 'rail' -> https://gs1-epcis-reg.org/rail/{term}" },
+          "slug": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "URL path segment, e.g. 'rail' -> https://ref.gs1.ch/rail/{term}" },
           "labelKey": { "type": "string" },
           "label": { "type": "string" },
           "description": { "type": "string" },
@@ -30,7 +30,7 @@
                 "url": {
                   "type": "string",
                   "format": "uri",
-                  "description": "Stable public identifier under the resolver host (e.g. https://gs1-epcis-reg.org/...). This is what other JSON-LD files' @context/@id point at, what the UI links to, and what RDF content negotiation redirects to. It does not need to correspond to any real file path on any host."
+                  "description": "Stable public identifier under the resolver host (e.g. https://ref.gs1.ch/voc/...). This is what other JSON-LD files' @context/@id point at, what the UI links to, and what RDF content negotiation redirects to. It does not need to correspond to any real file path on any host."
                 },
                 "source": {
                   "type": "string",

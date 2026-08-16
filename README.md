@@ -3,7 +3,7 @@
 A state-of-the-art single-page application that renders GS1 sector/domain
 ontologies and vocabularies — published as versioned JSON-LD on GitHub
 Pages — as a browsable, searchable, filterable, human-readable website,
-and resolves individual term URLs (e.g. `https://gs1-epcis-reg.org/rail/my_term`)
+and resolves individual term URLs (e.g. `https://ref.gs1.ch/rail/my_term`)
 with real HTTP content negotiation.
 
 Stack: React 18 + TypeScript + Vite + Tailwind, React Router, TanStack
@@ -32,7 +32,7 @@ manifest:
 
 1. **A direct artifact identifier** — a request path that matches one of
    the manifest's own `artifact.url` values, e.g.
-   `https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld`. Always
+   `https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld`. Always
    303-redirects to that artifact's `source` (see §2a below), regardless
    of `Accept` — an explicit file reference names one representation
    directly, there's nothing to negotiate.
@@ -111,7 +111,7 @@ be explicit:
 
 | Field | Example | Meaning |
 |---|---|---|
-| `url` | `https://gs1-epcis-reg.org/rail/voc/data/gs1RailVoc.jsonld` | The stable **public identifier** — what other JSON-LD files' `@context`/`@id` point at, what the UI links to, what content negotiation redirects to. A "Cool URI"; it should never need to change. |
+| `url` | `https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld` | The stable **public identifier** — what other JSON-LD files' `@context`/`@id` point at, what the UI links to, what content negotiation redirects to. A "Cool URI"; it should never need to change. |
 | `source` | `https://gs1-switzerland.github.io/WebOntology/current/sectors/tran/rail/vocabularies/gs1RailVoc.jsonld` | Where the bytes **actually live today**. The SPA's own `fetch()` calls and the resolver Function's redirects use this. Free to change (repo reorg, hosting migration) without breaking any external reference to `url`. |
 
 The resolver Function indexes every `artifact.url` from the manifest and
@@ -230,7 +230,7 @@ automatically.
 
 Some published vocabularies address individual terms as URL *fragments*
 of one shared document (`rail:railRunDistance` =
-`https://gs1-epcis-reg.org/rail/voc/data#railRunDistance`) rather than as
+`https://ref.gs1.ch/voc/rail/gs1RailVoc.jsonld#railRunDistance`) rather than as
 separate paths (`/rail/railRunDistance`). Fragments are never sent to a
 server by any browser, so this can only be resolved client-side:
 `HashFragmentRedirect` in `src/App.tsx` reads `window.location.hash` once
@@ -264,15 +264,25 @@ confidently resolve, rather than guessing.
 
 `/validate` — upload a file, drag-and-drop it, or paste a URL (fetched
 with `Accept: application/ld+json, text/turtle` — a content-negotiating
-resolver URL like `https://gs1-epcis-reg.org/rail/geo` returns the
+resolver URL like `https://ref.gs1.ch/rail/geo` returns the
 machine-readable form automatically, the same way `curl -H "Accept:
 application/ld+json"` does). The validator then:
 
-1. **Detects which domain the data belongs to** — `detectDomainForData()`
-   in `src/lib/shaclAdapter.ts` loads every published domain's term IRIs
-   and ranks domains by how many of the data's used predicate/type IRIs
-   they define. Manually overridable via a dropdown; not a hard
-   requirement to proceed.
+1. **Detects every domain the data plausibly belongs to** — not just one
+   best guess, since a single document (e.g. an EPCIS event) can
+   legitimately mix terms from several domains at once (GS1 Discovery
+   Service "disco" master-data terms alongside "rail" sensor terms, say).
+   `detectDomainsForData()` in `src/lib/shaclAdapter.ts` combines two
+   signals: **(1) the document's own `@context`** — every string URL in
+   it is checked against every artifact `url` in the manifest first, since
+   a document explicitly declaring which vocabulary it uses is the
+   strongest signal there is; **(2) term-IRI overlap** as a fallback/
+   supplement — every published domain's term IRIs are loaded and ranked
+   by how many of the data's used predicate/type IRIs they define. Every
+   domain either signal finds is included (shown with a small "detected
+   via @context" / "detected via term overlap" tag); each can be removed,
+   and further domains added manually via a dropdown — validation always
+   runs against the **union** of all currently-selected domains' shapes.
 2. **Resolves shapes to validate against** — every published SHACL file
    for that domain+version if any exist (shown as a checklist so specific
    files can be included/excluded — "gezielt nur mit denen validieren");
@@ -312,7 +322,7 @@ it never loads for anyone just browsing ontologies.
 
 **Resolving remote `@context` URLs reliably.** Real-world documents (e.g.
 EPCIS events) reference their own domain's `@context` by its public URL
-(`https://gs1-epcis-reg.org/rail/rail-context.jsonld`), and often a
+(`https://ref.gs1.ch/voc/rail/rail-context.jsonld`), and often a
 *further* external context on top of that (e.g. GS1's own
 `https://ref.gs1.org/standards/epcis/epcis-context.jsonld`). Fetching
 either client-side depends on the target host being reachable *and*
@@ -327,7 +337,7 @@ Two layers handle this:
    builds one from the manifest's own `url → source` map, so any
    `@context` URL this registry itself publishes resolves straight to
    its known-good GitHub Pages `source` — sidestepping the "is
-   gs1-epcis-reg.org live yet" question entirely.
+   ref.gs1.ch live yet" question entirely.
 2. For anything **not** in that map (genuinely external references),
    `shaclAdapter.ts::fetchTextWithProxyFallback()` tries a direct browser
    fetch first, and if that fails, retries through this app's own
@@ -487,7 +497,7 @@ npx @azure/static-web-apps-cli start dist --api-location api
    `VITE_*` build-time variables so the client build and the Function
    agree on the same source. In GitHub: *Settings → Secrets and
    variables → Actions → Variables*.
-5. Add a custom domain (e.g. `gs1-epcis-reg.org`) to the Static Web App
+5. Add a custom domain (e.g. `ref.gs1.ch`) to the Static Web App
    and point its DNS per Azure's instructions. Content negotiation and
    303 redirects work identically on the custom domain, since the
    resolver Function reads the request's `Host` header rather than

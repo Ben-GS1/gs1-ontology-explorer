@@ -24,7 +24,7 @@ export const MANIFEST_PATH: string =
 // Path (relative to DEFINITIONS_BASE_URL) of the GS1 sector codelist.
 // Published separately from the manifest because it changes far less
 // often (it mirrors the NACE-style Gs1Sector code list) and is reused by
-// other GS1 tooling beyond this SPA. If it can't be reached, the app
+// other GS1 tooling beyond this SPA. If it can't be reached  , the app
 // falls back to the bundled snapshot in src/config/sectors.ts so a
 // transient outage never breaks navigation — see loadSectors() in
 // src/lib/registryClient.ts.

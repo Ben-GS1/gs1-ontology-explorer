@@ -49,7 +49,7 @@ export const DOMAINS_PATH: string =
 // there) — two disjoint path namespaces on the one domain, both handled
 // by api/src/functions/resolve.js.
 export const RESOLVER_HOST: string =
-  import.meta.env.VITE_RESOLVER_HOST ?? "https://ref.gs1.ch";
+  import.meta.env.VITE_RESOLVER_HOST ?? "https://ref.gs1.ch/voc";
 
 export const DEFAULT_LANGUAGE = "en";
 export const SUPPORTED_LANGUAGES = ["en"] as const;

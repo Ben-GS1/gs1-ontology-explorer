@@ -260,6 +260,30 @@ this app deliberately doesn't fetch (see `vocabParser.ts`). Returns
 `undefined` — rendered as plain, unlinked text — for anything it can't
 confidently resolve, rather than guessing.
 
+## 2h-2. Unit of measure
+
+`schema:unitCode` (the property GS1 vocabularies use to record a term's
+unit — e.g. rail's `en15654Speed` carries `"schema:unitCode": "KMH"`) is
+now extracted (`vocabParser.ts` → `VocabTerm.unitCode`) and shown both on
+the term detail page and as a small badge in term list rows —
+previously it was silently dropped (present only in the raw JSON-LD
+panel). `src/lib/unitCodes.ts::describeUnitCode()` expands common
+UN/CEFACT Recommendation 20 codes to a human-readable label ("KMH" →
+"KMH (kilometre per hour)"); an unrecognised code is still shown as-is.
+Also included in the version-compare field diff (`termDiff.ts`), so a
+unit change between versions shows up there too.
+
+## 2h-3. Term links always point at the version you're currently viewing
+
+Term rows on the domain page, and a term's own Permalink field, now
+carry the same `?status=`/`?v=` query parameters as whatever you're
+currently browsing (`buildVersionQuery()` in `registryClient.ts`, the
+same scheme `TermPage.tsx` itself reads). Previously these always linked
+to bare `/{domain}/{term}` — clicking a term while looking at Staging or
+a specific Deprecated version silently dropped you back to Current. The
+Permalink shown on a term page is likewise now specific to the version
+being viewed, not always "current".
+
 ## 2i. SHACL Validator
 
 `/validate` — upload a file, drag-and-drop it, or paste a URL (fetched

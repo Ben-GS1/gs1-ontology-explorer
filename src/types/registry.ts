@@ -71,6 +71,8 @@ export interface VocabTerm {
   relations: Record<string, string[]>;
   /** Optional lifecycle marker some GS1 vocabularies carry per-term (sw:term_status). */
   termStatus?: "stable" | "deprecated" | "reserved" | string;
+  /** Unit of measure code (e.g. UN/CEFACT Recommendation 20 "KMH"), from schema:unitCode/schema:unitText, where the term declares one. */
+  unitCode?: string;
   /** Raw JSON-LD node, kept for a "view source" panel. */
   raw: Record<string, unknown>;
 }

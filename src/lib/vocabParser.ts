@@ -25,6 +25,11 @@ const DESCRIPTION_PREDICATES = [
   "comment",
 ];
 const TYPE_LIKE_KEYS = ["@type", "type"];
+// schema:unitCode is the one actually seen in GS1's real vocab files
+// (e.g. rail:en15654Speed carries "schema:unitCode": "KMH"); the others
+// are included defensively since this extraction is meant to work across
+// any vocabulary, not just ones we've inspected.
+const UNIT_PREDICATES = ["schema:unitCode", "schema:unitText", "qudt:unit", "sh:unit"];
 const RELATION_PREDICATES = [
   "rdfs:domain",
   "rdfs:range",
@@ -210,6 +215,7 @@ export function parseVocabularyDocument(
     const description = extractString(node, DESCRIPTION_PREDICATES);
     const relations = extractRelations(node, prefixMap);
     const termStatus = extractString(node, ["sw:term_status"]);
+    const unitCode = extractString(node, UNIT_PREDICATES);
 
     terms.push({
       id,
@@ -221,6 +227,7 @@ export function parseVocabularyDocument(
       sourceArtifactUrl: opts.sourceArtifactUrl,
       relations,
       termStatus,
+      unitCode,
       raw: node,
     });
   }
@@ -238,6 +245,7 @@ export function parseVocabularyDocument(
         description: existing.description ?? t.description,
         types: Array.from(new Set([...existing.types, ...t.types])),
         relations: { ...t.relations, ...existing.relations },
+        unitCode: existing.unitCode ?? t.unitCode,
       });
     }
   }

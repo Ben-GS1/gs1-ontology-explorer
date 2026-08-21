@@ -16,6 +16,7 @@ export function buildFieldRows(a: VocabTerm | undefined, b: VocabTerm | undefine
   push("description", a?.description ?? "—", b?.description ?? "—");
   push("type", (a?.types ?? []).slice().sort().join(", ") || "—", (b?.types ?? []).slice().sort().join(", ") || "—");
   push("termStatus", a?.termStatus ?? "—", b?.termStatus ?? "—");
+  push("unitCode", a?.unitCode ?? "—", b?.unitCode ?? "—");
 
   const predicates = new Set([...Object.keys(a?.relations ?? {}), ...Object.keys(b?.relations ?? {})]);
   for (const pred of Array.from(predicates).sort()) {

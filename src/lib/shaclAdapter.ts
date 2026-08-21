@@ -98,7 +98,7 @@ export function buildManifestDocumentLoader(manifest: RegistryManifest): JsonLdD
 /**
  * Fetches a URL with an Accept header that prefers RDF representations —
  * this is what makes "paste a resolver URL like
- * https://ref.gs1.ch/rail/geo" work: a content-negotiating
+ * https://gs1-epcis-reg.org/rail/geo" work: a content-negotiating
  * endpoint (see api/src/functions/resolve.js) returns the JSON-LD/Turtle
  * representation instead of the HTML page for this request, the same way
  * curl -H "Accept: application/ld+json" does. Plain file URLs (e.g. a
@@ -182,7 +182,7 @@ export async function resolveShapesForDomain(
  *  1. **@context URL matching** (primary, checked first): every string
  *     URL in the document's own top-level @context is compared against
  *     every artifact `url` published in the manifest. A document that
- *     explicitly declares `"@context": ["https://ref.gs1.ch/rail/rail-context.jsonld"]`
+ *     explicitly declares `"@context": ["https://gs1-epcis-reg.org/rail/rail-context.jsonld"]`
  *     is about as strong a signal as exists — the author said which
  *     vocabulary this is. This alone resolves the common case correctly
  *     even before any domain vocabulary has been loaded.

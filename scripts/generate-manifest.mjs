@@ -25,10 +25,10 @@
  *   gh-pages/
  *     current/sectors/<sectorCode-lowercase>/<domainSlug>/{ontologies,vocabularies,ttl,shacl}/*
  *     current/shared/<domainSlug>/{...}                    (no sector — cross-sector domains)
- *     stage/sectors/...                                     (only present after a stage push)
- *     stage/shared/...
  *     versions/<tag>/sectors/...                            (one such tree per past promotion)
  *     versions/<tag>/shared/...
+ *     stage/sectors/...                                     (only present after a stage push)
+ *     stage/shared/...
  *
  * "stage/" is scanned defensively (skipped if absent) since deploy-stage.yml
  * doesn't itself call this script yet — see PROMOTE_TO_PROD.md for the

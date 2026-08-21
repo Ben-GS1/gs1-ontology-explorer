@@ -133,6 +133,20 @@ export function versionTagOf(artifact: Artifact): string | undefined {
   return artifact.url.match(/\/versions\/([^/]+)\//)?.[1];
 }
 
+/**
+ * Builds the ?status=&v= query string TermPage reads to decide which
+ * version of a term to show (see its viewedVersion useMemo) — used
+ * anywhere a link into a term needs to point at a specific state/version
+ * rather than always defaulting to "current" (e.g. a term row rendered
+ * while browsing a domain's Staging or a Deprecated version — see
+ * TermRow.tsx). Empty string for "current", since that's the default.
+ */
+export function buildVersionQuery(status: Artifact["status"], versionTag?: string): string {
+  if (status === "current") return "";
+  if (status === "staging") return "?status=staging";
+  return versionTag ? `?status=deprecated&v=${encodeURIComponent(versionTag)}` : "?status=deprecated";
+}
+
 /** Every distinct deprecated version tag present in a domain's artifacts, most recent first (as ordered by the generator). */
 export function deprecatedVersionTags(domain: DomainEntry): string[] {
   const tags = new Set<string>();

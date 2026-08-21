@@ -37,6 +37,7 @@
   "term.crossReferences": "Also appears in",
   "term.relations": "Relations",
   "term.permalink": "Permalink",
+  "term.unitOfMeasure": "Unit of measure",
   "term.rawJsonLd": "Raw JSON-LD",
   "term.negotiationHint": "Requesting this URL with Accept: application/ld+json returns the machine-readable definition instead of this page.",
   "compare.field": "Field",

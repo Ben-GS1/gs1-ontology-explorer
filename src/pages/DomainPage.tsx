@@ -202,7 +202,7 @@ export function DomainPage() {
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {filtered.map((term) => (
-              <TermRow key={term.id} term={term} />
+              <TermRow key={term.id} term={term} status={status} versionTag={effectiveVersionTag} />
             ))}
           </div>
         </div>

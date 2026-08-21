@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { extractCodeListArray } from "@/lib/registryClient";
+import { buildVersionQuery, extractCodeListArray } from "@/lib/registryClient";
+
+describe("buildVersionQuery", () => {
+  it("returns an empty string for current — the default, no query params needed", () => {
+    expect(buildVersionQuery("current")).toBe("");
+  });
+
+  it("returns ?status=staging for staging", () => {
+    expect(buildVersionQuery("staging")).toBe("?status=staging");
+  });
+
+  it("returns ?status=deprecated&v=<tag> for a specific deprecated version", () => {
+    expect(buildVersionQuery("deprecated", "v1.0.0")).toBe("?status=deprecated&v=v1.0.0");
+  });
+
+  it("still returns a usable query for deprecated without a version tag", () => {
+    expect(buildVersionQuery("deprecated")).toBe("?status=deprecated");
+  });
+
+  it("URL-encodes the version tag", () => {
+    expect(buildVersionQuery("deprecated", "v1.0.0 rc")).toBe("?status=deprecated&v=v1.0.0%20rc");
+  });
+});
 
 describe("extractCodeListArray", () => {
   it("returns a bare top-level array as-is (the sectors.jsonld convention)", () => {

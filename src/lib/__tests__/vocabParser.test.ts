@@ -44,6 +44,15 @@ describe("parseVocabularyDocument (real GS1 Rail vocabulary)", () => {
     expect(stable?.termStatus).toBe("stable");
   });
 
+  it("captures schema:unitCode as unitCode, e.g. en15654Speed's 'KMH'", () => {
+    const speed = terms.find((t) => t.localName === "en15654Speed");
+    expect(speed?.unitCode).toBe("KMH");
+
+    // A term with no schema:unitCode at all must not get a fabricated one.
+    const geo = terms.find((t) => t.localName === "geo");
+    expect(geo?.unitCode).toBeUndefined();
+  });
+
   it("normalises @type whether it is a string or an array", () => {
     const singleType = terms.find((t) => t.localName === "railRunDistance");
     expect(singleType?.types).toEqual(["gs1:MeasurementType"]);

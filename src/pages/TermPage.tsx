@@ -6,9 +6,10 @@ import { sectorByCode } from "@/config/sectors";
 import { useDomain, useDomains, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
 import { domainDisplayLabel } from "@/config/domains";
 import { resolveTypeDefinitionUrl } from "@/lib/vocabLinks";
+import { describeUnitCode } from "@/lib/unitCodes";
 import { VersionSelect, versionOptionFromKey } from "@/components/VersionSelect";
 import { VersionCompare } from "@/components/VersionCompare";
-import type { VersionOption } from "@/lib/registryClient";
+import { buildVersionQuery, type VersionOption } from "@/lib/registryClient";
 import { RESOLVER_HOST } from "@/config/env";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -91,7 +92,7 @@ export function TermPage() {
   const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
   const domainLabel = domainDisplayLabel(domainsQuery.data ?? [], domain.slug, domain.label);
   const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
-  const permalink = `${RESOLVER_HOST}/${domain.slug}/${term.localName}`;
+  const permalink = `${RESOLVER_HOST}/${domain.slug}/${term.localName}${buildVersionQuery(viewedVersion.status, viewedVersion.versionTag)}`;
 
   return (
     <div>
@@ -166,6 +167,12 @@ export function TermPage() {
           <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.permalink")}</dt>
           <dd className="term-id mt-1 break-all text-sm text-signal-dim">{permalink}</dd>
         </div>
+        {term.unitCode && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.unitOfMeasure")}</dt>
+            <dd className="term-id mt-1 text-sm text-ink-700">{describeUnitCode(term.unitCode)}</dd>
+          </div>
+        )}
         {Object.entries(term.relations).map(([pred, values]) => (
           <div key={pred}>
             <dt className="term-id text-xs font-semibold uppercase tracking-wide text-ink-400">{pred}</dt>

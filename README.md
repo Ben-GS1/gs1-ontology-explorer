@@ -532,6 +532,34 @@ npx @azure/static-web-apps-cli start dist --api-location api
    registry UI change and a staging vocabulary version side by side
    before promoting either.
 
+### ⚠️ If you customize the deploy workflow (`app_location`, `skip_app_build`, a separate pre-build step, …)
+
+`staticwebapp.config.json` — the file that wires `/*` to the resolver
+Function, sets security headers, MIME types, everything in §1–§2i above —
+**only takes effect if it ends up inside the folder Azure actually
+deploys.** With the included workflow (`app_location: "/"`,
+`output_location: "dist"`, Azure runs the build itself), Azure finds it
+at the app source root automatically. But if your workflow instead
+pre-builds with its own `npm run build` step and then points
+`Azure/static-web-apps-deploy` at `app_location: dist` with
+`skip_app_build: true` (a common pattern when a workflow builds and
+deploys in one job), **Azure only ever sees the contents of `dist/`** —
+and `staticwebapp.config.json` at the repo root is never part of that
+folder. Without it, there is no `/*` → `/api/resolve` rewrite at all: the
+resolver Function is simply never invoked, and every resolver/artifact
+URL 404s with Azure's own generic error page (`Content-Type: text/html`,
+no JSON error body — a tell that the Function was never reached, since
+`resolve.js` never returns a bare `text/html` 404 without either the
+app shell or a `jsonBody`).
+
+The fix already in this repo: `public/staticwebapp.config.json` is a
+second copy, kept in sync with the root one — Vite copies everything
+under `public/` verbatim into `dist/` on every build, so it survives
+*any* deploy workflow shape, custom or not. If you edit routing rules,
+**edit both copies** (or symlink one to the other) until/unless you
+consolidate your deploy workflow to always build via Azure/Oryx from the
+repo root instead.
+
 ---
 
 ## 9. What's deliberately out of scope / next steps

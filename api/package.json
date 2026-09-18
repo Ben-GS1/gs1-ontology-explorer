@@ -3,9 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "main": "src/functions/*.js",
-  "engines": {
-    "node": "20"
-  },
   "scripts": {
     "start": "func start"
   },

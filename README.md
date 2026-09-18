@@ -497,12 +497,34 @@ To run the resolver Function locally (requires the Azure Functions Core
 Tools and the Static Web Apps CLI):
 
 ```bash
-npm run build                       # dist/index.html — the HTML shell resolve.js serves
-node scripts/generate-app-shell.mjs # generates api/src/app-shell.js, same as the deploy workflow
 cd api && npm install && npm start  # func start, http://localhost:7071
 # in another terminal, from the project root:
 npx @azure/static-web-apps-cli start dist --api-location api
 ```
+
+`resolve.js` serves the SPA shell for text/html requests from a copy
+embedded directly in `api/src/lib/shell.js` — see "Maintaining the API's
+SPA shell" below for when and how to update it.
+
+### Maintaining the API's SPA shell
+
+`api/src/lib/shell.js` has a copy of `dist/index.html` embedded as a
+string literal, committed straight into the file rather than generated
+fresh on every deploy (see that file's own comment for why: two CI-time
+generation approaches were tried and both failed silently in production).
+`index.html` itself rarely changes — it's just the SPA's bootstrap shell
+(title, meta tags, script/style tags), not per-domain or per-term
+content — so this only needs regenerating when you actually touch it:
+
+```bash
+npm run build                       # rebuilds dist/index.html
+node scripts/generate-app-shell.mjs # splices it into api/src/lib/shell.js
+git diff api/src/lib/shell.js       # review, then commit as part of your change
+```
+
+CI has a guard step that fails the build if `shell.js` still has its
+placeholder (i.e. this was forgotten), but it does **not** run the
+generation step itself — the committed content is what actually deploys.
 
 ---
 

@@ -13,7 +13,6 @@
     { "route": "/", "redirect": "/voc/", "statusCode": 302 },
 
     { "route": "/voc", "rewrite": "/index.html" },
-    { "route": "/voc/", "rewrite": "/index.html" },
     { "route": "/voc/search", "rewrite": "/index.html" },
     { "route": "/voc/sector/*", "rewrite": "/index.html" },
 

@@ -497,7 +497,9 @@ To run the resolver Function locally (requires the Azure Functions Core
 Tools and the Static Web Apps CLI):
 
 ```bash
-cd api && npm install && npm start        # func start, http://localhost:7071
+npm run build                              # dist/index.html — the HTML shell resolve.js serves
+cp dist/index.html api/src/app-shell.html  # same copy step the deploy workflow does
+cd api && npm install && npm start         # func start, http://localhost:7071
 # in another terminal, from the project root:
 npx @azure/static-web-apps-cli start dist --api-location api
 ```

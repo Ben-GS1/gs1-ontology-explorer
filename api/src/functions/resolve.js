@@ -1,7 +1,7 @@
 const { app } = require("@azure/functions");
 const { loadManifest, findDomain, pickArtifact, findArtifactByPublicPath } = require("../lib/manifest");
 const { preferredRdfType } = require("../lib/negotiate");
-const { fetchAppShell } = require("../lib/shell");
+const { getAppShell } = require("../lib/shell");
 
 // Maps a negotiated RDF media type to the artifact "kind" we prefer to
 // redirect to. Vocabulary is the default; a context negotiation could be
@@ -54,7 +54,6 @@ async function resolve(request, context) {
 
   const acceptHeader = request.headers.get("accept");
   const rdfType = preferredRdfType(acceptHeader);
-  const host = request.headers.get("host");
 
   let manifest;
   try {
@@ -63,7 +62,7 @@ async function resolve(request, context) {
     context.error("manifest load failed", err);
     return rdfType
       ? { status: 502, jsonBody: { error: "registry manifest unavailable" } }
-      : await htmlShellResponse(host, 502);
+      : htmlShellResponse(502);
   }
 
   // Case 1: does this path match a known artifact's own public URL?
@@ -96,7 +95,7 @@ async function resolve(request, context) {
   if (!domain) {
     return rdfType
       ? { status: 404, jsonBody: { error: `unknown path '${path}'` } }
-      : await htmlShellResponse(host, 404);
+      : htmlShellResponse(404);
   }
 
   if (rdfType) {
@@ -117,21 +116,28 @@ async function resolve(request, context) {
     };
   }
 
-  return await htmlShellResponse(host, 200);
+  return htmlShellResponse(200);
 }
 
-async function htmlShellResponse(host, status) {
+function htmlShellResponse(status) {
   try {
-    const html = await fetchAppShell(host);
+    const html = getAppShell();
     return {
       status,
       headers: { "Content-Type": "text/html; charset=utf-8", Vary: "Accept" },
       body: html,
     };
-  } catch {
-    // Fall back to a plain redirect to the SPA root if the shell can't be
-    // fetched (e.g. cold-start race on first deploy).
-    return { status: 302, headers: { Location: "/voc/" } };
+  } catch (err) {
+    // Only reachable if the "Copy SPA shell into API" workflow step didn't
+    // run (e.g. a local `func start` without first building the frontend).
+    // A plain error instead of a redirect, deliberately: redirecting back
+    // to a /voc/* path that also renders through this same function could
+    // loop.
+    return {
+      status: 500,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      body: `app shell unavailable: ${err.message}`,
+    };
   }
 }
 

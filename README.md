@@ -514,17 +514,35 @@ fresh on every deploy (see that file's own comment for why: two CI-time
 generation approaches were tried and both failed silently in production).
 `index.html` itself rarely changes — it's just the SPA's bootstrap shell
 (title, meta tags, script/style tags), not per-domain or per-term
-content — so this only needs regenerating when you actually touch it:
+content — so this only needs regenerating when you actually touch it, or
+touch anything under `src/config/env.ts`'s environment variables:
 
 ```bash
-npm run build                       # rebuilds dist/index.html
-node scripts/generate-app-shell.mjs # splices it into api/src/lib/shell.js
-git diff api/src/lib/shell.js       # review, then commit as part of your change
+# Use the SAME values as vars.DEFINITIONS_BASE_URL / vars.MANIFEST_PATH /
+# vars.RESOLVER_HOST in the repo's Settings → Secrets and variables →
+# Actions → Variables — NOT just the .env.example defaults. This matters:
+# those values get compiled directly into the JS bundle, so a different
+# value changes the bundle's content and therefore its content-hashed
+# filename (e.g. index-DlNwAQuP.js). If the shell embedded here
+# references a filename that this workflow's own build never actually
+# produces, the browser 404s loading it, Azure's fallback serves it the
+# HTML shell instead, and the app fails to mount silently — a blank page
+# with no server-side error, only visible in the browser console. This
+# bit us once already; the "Verify the API's embedded SPA shell matches
+# this build's assets" CI step now catches it, but regenerate with the
+# right values in the first place to avoid the round-trip.
+VITE_DEFINITIONS_BASE_URL=<same as vars.DEFINITIONS_BASE_URL> \
+VITE_MANIFEST_PATH=<same as vars.MANIFEST_PATH> \
+VITE_RESOLVER_HOST=<same as vars.RESOLVER_HOST> \
+  npm run build                       # rebuilds dist/index.html with the right env baked in
+node scripts/generate-app-shell.mjs   # splices it into api/src/lib/shell.js
+git diff api/src/lib/shell.js         # review, then commit as part of your change
 ```
 
 CI has a guard step that fails the build if `shell.js` still has its
-placeholder (i.e. this was forgotten), but it does **not** run the
-generation step itself — the committed content is what actually deploys.
+placeholder, or if any asset it references doesn't actually exist in
+that run's own freshly-built `dist/` — but it does **not** regenerate the
+shell itself. The committed content is what actually deploys.
 
 ---
 

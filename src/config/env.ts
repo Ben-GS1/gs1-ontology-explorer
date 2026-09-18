@@ -40,14 +40,17 @@ export const DOMAINS_PATH: string =
   import.meta.env.VITE_DOMAINS_PATH ?? "registry/domains.jsonld";
 
 // Public resolver host used to build canonical / permalink URLs shown in
-// the UI (e.g. https://ref.gs1.ch/rail/my_term). This does NOT have
+// the UI (e.g. https://ref.gs1.ch/voc/rail/my_term). This does NOT have
 // to be the host the SPA itself is served from — though as of the
 // ref.gs1.ch custom domain going live on the Azure Static Web App, it
-// now typically is: the same host serves both the human-readable SPA at
-// /{domain}/{term} and, at /voc/{domain}/{filename}, the artifact
-// identifiers generate-manifest.mjs publishes (see PUBLIC_BASE_URL
-// there) — two disjoint path namespaces on the one domain, both handled
-// by api/src/functions/resolve.js.
+// now typically is: the same host, under the same /voc path prefix,
+// serves both the human-readable SPA resolver paths (/voc/{domain}/{term})
+// and the artifact identifiers generate-manifest.mjs publishes
+// (/voc/{domain}/{filename}, see PUBLIC_BASE_URL there) — one shared /voc
+// path namespace on the domain, disambiguated by
+// api/src/functions/resolve.js (see its own comment for how), with the
+// app's own client-side routes (src/main.tsx's <BrowserRouter basename>)
+// mounted at that same /voc prefix.
 export const RESOLVER_HOST: string =
   import.meta.env.VITE_RESOLVER_HOST ?? "https://ref.gs1.ch/voc";
 

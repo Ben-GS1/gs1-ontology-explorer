@@ -188,7 +188,7 @@ erneut auslösen) → GitHub Actions baut und deployt automatisch.
 
 ## 5. Eigene Domain (optional, aber im Brief vorausgesetzt)
 
-Damit die Resolver-URLs wie `https://ref.gs1.ch/rail/my_term`
+Damit die Resolver-URLs wie `https://ref.gs1.ch/voc/rail/my_term`
 funktionieren, muss diese Domain auf die Static Web App zeigen:
 
 1. Azure Portal → Static Web App → **Custom domains** → **Add**
@@ -209,11 +209,11 @@ Request und nimmt nichts über den `*.azurestaticapps.net`-Hostnamen an.
 
 ```bash
 # HTML-Ansicht (Browser-Fall):
-curl -sI -H "Accept: text/html" https://ref.gs1.ch/rail/geo
+curl -sI -H "Accept: text/html" https://ref.gs1.ch/voc/rail/geo
 # -> 200, Content-Type: text/html
 
 # Linked-Data-Fall (Term-Auflösung):
-curl -sI -H "Accept: application/ld+json" https://ref.gs1.ch/rail/geo
+curl -sI -H "Accept: application/ld+json" https://ref.gs1.ch/voc/rail/geo
 # -> 303, Location: https://…/gs1RailVoc.jsonld#geo
 
 # Direkter Artefakt-Pfad (die "url" aus dem Manifest):

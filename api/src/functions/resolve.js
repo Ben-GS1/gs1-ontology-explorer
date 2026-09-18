@@ -13,34 +13,40 @@ const MEDIA_TYPE_TO_KIND = {
 };
 
 /**
- * Single entry point for every public path under the resolver host. Two
- * distinct request shapes are handled here, both driven entirely by the
- * manifest — nothing is hard-coded:
+ * Single entry point for every public path under the resolver host, all
+ * of which now live under the /voc prefix (https://ref.gs1.ch/voc/...).
+ * Two distinct request shapes are handled here, both driven entirely by
+ * the manifest — nothing is hard-coded:
  *
  *  1. A direct artifact identifier, e.g.
- *     /rail/voc/data/gs1RailVoc.jsonld — this is one of the manifest's
- *     own `artifact.url` values. Always 303-redirects to that artifact's
+ *     /voc/rail/voc/data/gs1RailVoc.jsonld — this is one of the
+ *     manifest's own `artifact.url` values (already published with a
+ *     /voc/ prefix by generate-manifest.mjs's PUBLIC_BASE_URL, unchanged
+ *     by the move below). Always 303-redirects to that artifact's
  *     `source` (the physical GitHub Pages bytes), regardless of Accept —
  *     an explicit file reference isn't negotiable, it names one
  *     representation directly.
  *
- *  2. A term/domain resolver path, e.g. /rail or /rail/geo — negotiated
- *     by Accept header:
+ *  2. A term/domain resolver path, e.g. /voc/rail or /voc/rail/geo —
+ *     negotiated by Accept header:
  *       - RDF media types -> 303 to the domain's vocabulary artifact's
  *         `source`, with a #localName fragment for term requests.
  *       - text/html (browsers, default) -> 200 with the SPA app shell.
  *     A path with more than one extra segment under the domain (e.g.
- *     /rail/voc/data — a "hash URI" vocabulary's own namespace base, whose
- *     real per-term addresses are .../data#term) is treated the same way
- *     minus the fragment guess, since fragments never reach the server at
- *     all — see the comment further down for how the term actually gets
- *     resolved in that case.
+ *     /voc/rail/voc/data — a "hash URI" vocabulary's own namespace base,
+ *     whose real per-term addresses are .../data#term) is treated the
+ *     same way minus the fragment guess, since fragments never reach the
+ *     server at all — see the comment further down for how the term
+ *     actually gets resolved in that case.
  *
- * staticwebapp.config.json rewrites every otherwise-unmatched path to
- * /api/resolve while preserving the original request path in the
- * "x-ms-original-url" header (Azure Static Web Apps sets this
+ * staticwebapp.config.json rewrites every otherwise-unmatched path under
+ * /voc/* to /api/resolve while preserving the original request path in
+ * the "x-ms-original-url" header (Azure Static Web Apps sets this
  * automatically on rewritten requests) — that's how this single Function
- * route can serve an unbounded number of resolver/artifact paths.
+ * route can serve an unbounded number of resolver/artifact paths. Case 1
+ * matches on the full path (artifact.url already includes /voc/), so only
+ * Case 2's parsing needs to strip the leading /voc segment below before
+ * reading the domain/term out of what's left.
  */
 async function resolve(request, context) {
   const originalUrl = request.headers.get("x-ms-original-url") || request.url;
@@ -78,7 +84,12 @@ async function resolve(request, context) {
   //     HashFragmentRedirect in src/App.tsx); RDF clients get redirected to
   //     the domain's whole vocabulary document instead of a guessed,
   //     likely-wrong #fragment, and resolve the term themselves client-side.
-  const segments = path.split("/").filter(Boolean);
+  const allSegments = path.split("/").filter(Boolean);
+  // Every resolver/artifact path lives under /voc — drop that one leading
+  // segment so domainSlug/termName below are read from what follows it,
+  // e.g. /voc/rail/geo -> ["rail", "geo"]. A bare /voc (or /voc/) has no
+  // segments left after this and correctly falls through to "no domain".
+  const segments = allSegments[0] === "voc" ? allSegments.slice(1) : allSegments;
   const [domainSlug, termName] = segments;
   const domain = domainSlug ? findDomain(manifest, domainSlug) : undefined;
 
@@ -120,7 +131,7 @@ async function htmlShellResponse(host, status) {
   } catch {
     // Fall back to a plain redirect to the SPA root if the shell can't be
     // fetched (e.g. cold-start race on first deploy).
-    return { status: 302, headers: { Location: "/" } };
+    return { status: 302, headers: { Location: "/voc/" } };
   }
 }
 

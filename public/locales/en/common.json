@@ -64,7 +64,7 @@
   "validator.dropHint": "Drag and drop a file here",
   "validator.acceptedFormats": "JSON-LD (.jsonld, .json) or Turtle (.ttl)",
   "validator.chooseFile": "Choose file…",
-  "validator.urlPlaceholder": "https://ref.gs1.ch/rail/geo",
+  "validator.urlPlaceholder": "https://ref.gs1.ch/voc/rail/geo",
   "validator.loadFromUrl": "Load",
   "validator.urlNegotiationHint": "Fetched with Accept: application/ld+json, text/turtle — a content-negotiating URL returns the machine-readable form automatically.",
   "validator.parseFailed": "Couldn't parse this as JSON-LD or Turtle.",

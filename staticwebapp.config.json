@@ -10,11 +10,14 @@
 
     { "route": "/api/*", "allowedRoles": ["anonymous"] },
 
-    { "route": "/search", "rewrite": "/index.html" },
-    { "route": "/sector/*", "rewrite": "/index.html" },
-    { "route": "/" },
+    { "route": "/", "redirect": "/voc/", "statusCode": 302 },
 
-    { "route": "/*", "rewrite": "/api/resolve" }
+    { "route": "/voc", "rewrite": "/index.html" },
+    { "route": "/voc/", "rewrite": "/index.html" },
+    { "route": "/voc/search", "rewrite": "/index.html" },
+    { "route": "/voc/sector/*", "rewrite": "/index.html" },
+
+    { "route": "/voc/*", "rewrite": "/api/resolve" }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
@@ -36,6 +39,6 @@
     "Cross-Origin-Resource-Policy": "same-site"
   },
   "responseOverrides": {
-    "404": { "rewrite": "/index.html", "statusCode": 200 }
+    "404": { "redirect": "/voc/", "statusCode": 302 }
   }
 }

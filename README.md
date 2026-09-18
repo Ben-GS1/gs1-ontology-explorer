@@ -3,7 +3,7 @@
 A state-of-the-art single-page application that renders GS1 sector/domain
 ontologies and vocabularies — published as versioned JSON-LD on GitHub
 Pages — as a browsable, searchable, filterable, human-readable website,
-and resolves individual term URLs (e.g. `https://ref.gs1.ch/rail/my_term`)
+and resolves individual term URLs (e.g. `https://ref.gs1.ch/voc/rail/my_term`)
 with real HTTP content negotiation.
 
 Stack: React 18 + TypeScript + Vite + Tailwind, React Router, TanStack
@@ -288,7 +288,7 @@ being viewed, not always "current".
 
 `/validate` — upload a file, drag-and-drop it, or paste a URL (fetched
 with `Accept: application/ld+json, text/turtle` — a content-negotiating
-resolver URL like `https://ref.gs1.ch/rail/geo` returns the
+resolver URL like `https://ref.gs1.ch/voc/rail/geo` returns the
 machine-readable form automatically, the same way `curl -H "Accept:
 application/ld+json"` does). The validator then:
 

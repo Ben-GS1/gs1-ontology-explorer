@@ -2,6 +2,7 @@ import { Parser as N3Parser } from "n3";
 import jsonld from "jsonld";
 import type { Quad } from "n3";
 import type { ParsedGraph, RdfInputFormat } from "./types";
+import { SHACL_JSONLD_CONTEXT } from "./shaclContext";
 
 /**
  * Matches jsonld.js's own documentLoader function signature: given a URL,
@@ -36,12 +37,36 @@ export function parseTurtle(text: string): Quad[] {
  * src/lib/shaclAdapter.ts::buildManifestDocumentLoader() for that piece.
  * Loader/network failures are surfaced as a normal thrown error for the
  * caller to display, not swallowed.
+ *
+ * `extraContext`, when given, is passed to jsonld.js as `expandContext` —
+ * an additional context applied before the document's own @context. Used
+ * by parseShaclShapesJsonLd() below; ordinary data-document parsing never
+ * passes one.
  */
-export async function parseJsonLd(doc: unknown, documentLoader?: JsonLdDocumentLoader): Promise<Quad[]> {
+export async function parseJsonLd(
+  doc: unknown,
+  documentLoader?: JsonLdDocumentLoader,
+  extraContext?: Record<string, unknown>
+): Promise<Quad[]> {
   const options: Record<string, unknown> = { format: "application/n-quads" };
   if (documentLoader) options.documentLoader = documentLoader;
+  if (extraContext) options.expandContext = extraContext;
   const nquads = (await jsonld.toRDF(doc as jsonld.JsonLdDocument, options as jsonld.Options.ToRdf)) as unknown as string;
   return new N3Parser({ format: "N-Quads" }).parse(nquads);
+}
+
+/**
+ * Parses a JSON-LD *SHACL shapes* document specifically — identical to
+ * parseJsonLd() except it also supplies SHACL_JSONLD_CONTEXT (see that
+ * module's own doc comment for why this matters: without it, a shapes
+ * document whose own @context doesn't separately declare @id-typing for
+ * sh:targetClass/sh:path/etc. silently parses into a shapes graph that
+ * matches nothing, and SHACL validation against zero targets trivially
+ * "conforms" — a validator that looks like it ran but didn't). Never use
+ * this for ordinary data documents.
+ */
+export async function parseShaclShapesJsonLd(doc: unknown, documentLoader?: JsonLdDocumentLoader): Promise<Quad[]> {
+  return parseJsonLd(doc, documentLoader, SHACL_JSONLD_CONTEXT);
 }
 
 /** Sniffs whether a text payload looks like JSON (JSON-LD) or Turtle, for when no explicit format is known. */
@@ -54,17 +79,27 @@ export function sniffFormat(text: string, contentType?: string): RdfInputFormat 
   return trimmed.startsWith("{") || trimmed.startsWith("[") ? "jsonld" : "turtle";
 }
 
-/** Parses arbitrary RDF text (JSON-LD or Turtle, explicit or sniffed) into quads. */
+/**
+ * Parses arbitrary RDF text (JSON-LD or Turtle, explicit or sniffed) into
+ * quads. `role` picks which JSON-LD parse path is used: "shapes" applies
+ * SHACL_JSONLD_CONTEXT (see parseShaclShapesJsonLd()), "data" (the
+ * default) does not. Turtle is unaffected either way — Turtle has no
+ * @context/@type:@id ambiguity to begin with, since prefixes there always
+ * produce IRIs.
+ */
 export async function parseRdfText(
   text: string,
   format?: RdfInputFormat,
   contentType?: string,
-  documentLoader?: JsonLdDocumentLoader
+  documentLoader?: JsonLdDocumentLoader,
+  role: "data" | "shapes" = "data"
 ): Promise<ParsedGraph> {
   const resolved = format ?? sniffFormat(text, contentType);
   if (resolved === "jsonld") {
     const doc = JSON.parse(text);
-    return { quads: await parseJsonLd(doc, documentLoader), format: "jsonld" };
+    const quads =
+      role === "shapes" ? await parseShaclShapesJsonLd(doc, documentLoader) : await parseJsonLd(doc, documentLoader);
+    return { quads, format: "jsonld" };
   }
   return { quads: parseTurtle(text), format: "turtle" };
 }

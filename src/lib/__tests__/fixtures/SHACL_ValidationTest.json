@@ -1,0 +1,46 @@
+{
+  "resultsOverview": {
+    "totalEventCount": 1,
+    "returnedEventCount": 1,
+    "restrictedEventCount": 0,
+    "authorizationRequestEndpoint": []
+  },
+  "@context": [
+    "https://gs1-epcis-reg.org/rail/rail-context.jsonld"
+  ],
+  "type": "EPCISDocument",
+  "schemaVersion": "2.0",
+  "creationDate": "2026-04-01T11:15:47.652+02:00",
+  "epcisBody": {
+    "eventList": [
+      {
+        "type": "ObjectEvent",
+        "action": "OBSERVE",
+        "eventTime": "2024-09-10T10:47:37.520+02:00",
+        "eventTimeZoneOffset": "+02:00",
+        "epcList": [
+          "https://id.gs1.ch/01/07649992567011/21/4711"
+        ],
+        "eventID": "ni:///sha-256;0268e3d7b0bdd3a3a25797b7354508f881fcda08c1d9496491263bee72ff9063?ver=CBV2.0",
+        "bizTransactionList": [
+          {
+            "type": "cert",
+            "bizTransaction": "https://www.gs1.org/services/verified-by-gs1/results?key=07649992567011&key_type=gtin"
+          }
+        ],
+		"epcis:persistentDisposition": "quarantined",
+        "gs1:masterDataAvailableFor": [
+          {
+            "id": "https://id.gs1.ch/01/07649992567011/21/4711",
+            "licenceKey": "7649992567",
+            "licenseeName": "buildup AG",
+            "keyRecordStatus": "OK",
+            "schema:errorCode": "none",
+            "vbgmessage": "OK",
+            "schema:target": []
+          }
+        ]
+      }
+    ]
+  }
+}

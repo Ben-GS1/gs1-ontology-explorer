@@ -97,5 +97,12 @@
   "validator.path": "Path",
   "validator.sourceShape": "Source shape",
   "validator.constraint": "Constraint",
-  "validator.offendingValue": "Value"
+  "validator.offendingValue": "Value",
+  "validator.customShapesTitle": "Or provide your own SHACL shapes",
+  "validator.customShapesHint": "Test a shapes file directly — a draft still under development, or for a domain not published in the registry yet. Used alongside (not instead of) any domain shapes above.",
+  "validator.customShapesLoaded": "{{count}} custom shapes file(s) loaded — validating against all selected ones:",
+  "validator.customShapesFailed": "Couldn't parse this as a SHACL shapes file.",
+  "validator.validationFailed": "Validation couldn't complete.",
+  "validator.engineWarningsTitle": "Some shapes were skipped",
+  "validator.engineWarningsHint": "The validation engine doesn't support every SHACL feature — the report below reflects everything it could check, but not these:"
 }

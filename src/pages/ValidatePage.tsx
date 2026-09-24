@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import type { Quad } from "n3";
 import { useManifest } from "@/hooks/useRegistry";
 import {
+  buildClassHierarchyQuads,
   buildManifestDocumentLoader,
   detectDomainsForData,
   findShaclArtifacts,
@@ -15,6 +16,7 @@ import { parseRdfText, validate, type DomainMatch, type RdfInputFormat, type Val
 import { DataInput, type LoadedInput } from "@/components/validator/DataInput";
 import { ValidationReportView } from "@/components/validator/ValidationReportView";
 import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
+import { loadDomainTerms } from "@/lib/registryClient";
 import type { Artifact, DomainEntry } from "@/types/registry";
 
 /**
@@ -51,6 +53,8 @@ interface DomainState {
   loading: boolean;
   error?: string;
   detectedVia?: DomainMatch["via"];
+  /** rdfs:subClassOf quads from this domain's own ontology — merged into dataQuads at validation time. See buildClassHierarchyQuads(). */
+  classHierarchyQuads: Quad[];
 }
 
 export function ValidatePage() {
@@ -75,6 +79,42 @@ export function ValidatePage() {
 
   const [report, setReport] = useState<ValidationReport | null>(null);
   const [validating, setValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Custom SHACL shapes the user supplies directly, independent of any
+  // domain the manifest knows about — e.g. a shapes file still under
+  // development, or one for a domain not (yet) published in the registry.
+  // Kept separate from domainStates since it has no associated domain
+  // entry, status or version — just a label and its own quads.
+  interface CustomShapesState {
+    label: string;
+    quads: Quad[];
+    selected: boolean;
+  }
+  const [customShapes, setCustomShapes] = useState<CustomShapesState[]>([]);
+  const [customShapesBusy, setCustomShapesBusy] = useState(false);
+  const [customShapesError, setCustomShapesError] = useState<string | null>(null);
+
+  async function handleCustomShapesLoaded(input: LoadedInput) {
+    setCustomShapesError(null);
+    setCustomShapesBusy(true);
+    try {
+      const { quads } = await parseRdfText(input.text, undefined, input.contentType, documentLoader, "shapes");
+      setCustomShapes((prev) => [...prev, { label: input.label, quads, selected: true }]);
+    } catch (err) {
+      setCustomShapesError(explainParseError(err));
+    } finally {
+      setCustomShapesBusy(false);
+    }
+  }
+
+  function toggleCustomShapes(index: number, checked: boolean) {
+    setCustomShapes((prev) => prev.map((s, i) => (i === index ? { ...s, selected: checked } : s)));
+  }
+
+  function removeCustomShapes(index: number) {
+    setCustomShapes((prev) => prev.filter((_, i) => i !== index));
+  }
 
   // Resolves any @context URL this app already indexes (every manifest
   // artifact's public url) straight to its known-good `source`, and falls
@@ -108,22 +148,37 @@ export function ValidatePage() {
         estimated: false,
         loading: true,
         detectedVia: detectedVia ?? prev[domain.slug]?.detectedVia,
+        classHierarchyQuads: prev[domain.slug]?.classHierarchyQuads ?? [],
       },
     }));
 
     try {
       const realShacl = findShaclArtifacts(domain, status, versionTag);
       if (realShacl.length > 0) {
-        const loaded = await Promise.all(
-          realShacl.map(async (artifact) => ({
-            artifact,
-            quads: await loadShaclArtifactQuads(artifact, documentLoader),
-            selected: true,
-          }))
-        );
+        const [loaded, terms] = await Promise.all([
+          Promise.all(
+            realShacl.map(async (artifact) => ({
+              artifact,
+              quads: await loadShaclArtifactQuads(artifact, documentLoader),
+              selected: true,
+            }))
+          ),
+          // See buildClassHierarchyQuads()'s doc comment: real SHACL files
+          // constrain instance data but don't state the class hierarchy
+          // itself, so subclass-target shapes need this merged in
+          // separately. Best-effort — an unreachable ontology shouldn't
+          // block validation against the (already loaded) real shapes.
+          loadDomainTerms(domain, status, versionTag).catch(() => []),
+        ]);
         setDomainStates((prev) => ({
           ...prev,
-          [domain.slug]: { ...prev[domain.slug], shaclFiles: loaded, estimated: false, loading: false },
+          [domain.slug]: {
+            ...prev[domain.slug],
+            shaclFiles: loaded,
+            estimated: false,
+            loading: false,
+            classHierarchyQuads: buildClassHierarchyQuads(terms),
+          },
         }));
         return;
       }
@@ -136,6 +191,7 @@ export function ValidatePage() {
           estimated: true,
           estimatedNote: resolved.sourceLabels[0],
           loading: false,
+          classHierarchyQuads: resolved.classHierarchyQuads,
         },
       }));
     } catch (err) {
@@ -217,13 +273,24 @@ export function ValidatePage() {
   async function runValidation() {
     if (!dataQuads) return;
     setValidating(true);
+    setValidationError(null);
     try {
-      const shapeQuads = Object.values(domainStates)
-        .flatMap((s) => s.shaclFiles)
-        .filter((f) => f.selected)
-        .flatMap((f) => f.quads);
-      const result = await validate(shapeQuads, dataQuads);
+      const domainStateList = Object.values(domainStates);
+      const shapeQuads = [
+        ...domainStateList.flatMap((s) => s.shaclFiles.filter((f) => f.selected).flatMap((f) => f.quads)),
+        ...customShapes.filter((s) => s.selected).flatMap((s) => s.quads),
+      ];
+      // See buildClassHierarchyQuads()'s doc comment: rdf-validate-shacl
+      // looks for rdfs:subClassOf facts in the *data* graph, not the
+      // shapes graph, so a shape targeting an abstract superclass (very
+      // common in EPCIS-style vocabularies, where instance data always
+      // uses a concrete subtype) needs this merged into dataQuads here to
+      // match at all.
+      const classHierarchyQuads = domainStateList.flatMap((s) => s.classHierarchyQuads);
+      const result = await validate(shapeQuads, [...dataQuads, ...classHierarchyQuads]);
       setReport(result);
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : String(err));
     } finally {
       setValidating(false);
     }
@@ -231,7 +298,9 @@ export function ValidatePage() {
 
   const selectedSlugs = Object.keys(domainStates);
   const addableDomains = (manifest.data?.domains ?? []).filter((d) => !selectedSlugs.includes(d.slug));
-  const anySelected = Object.values(domainStates).some((s) => s.shaclFiles.some((f) => f.selected));
+  const anySelected =
+    Object.values(domainStates).some((s) => s.shaclFiles.some((f) => f.selected)) ||
+    customShapes.some((s) => s.selected);
   const anyLoading = Object.values(domainStates).some((s) => s.loading);
 
   return (
@@ -396,15 +465,66 @@ export function ValidatePage() {
                   </select>
                 </div>
               )}
+            </div>
+          )}
 
-              {anySelected && (
-                <button
-                  onClick={runValidation}
-                  disabled={validating || anyLoading}
-                  className="rounded bg-ink-900 px-4 py-2 text-sm font-medium text-ink-50 hover:bg-ink-800 disabled:opacity-50"
-                >
-                  {validating ? t("validator.validating") : t("validator.runValidation")}
-                </button>
+          {/* Independent of manifest/domain detection above — lets a user
+              test a shapes file directly, e.g. one not (yet) published in
+              the registry, or a draft still under development. */}
+          <div className="mt-4 rounded border border-ink-100 bg-white p-4">
+            <p className="mb-2 font-display text-sm font-medium text-ink-900">{t("validator.customShapesTitle")}</p>
+            <p className="mb-3 text-xs text-ink-400">{t("validator.customShapesHint")}</p>
+            <DataInput onLoaded={handleCustomShapesLoaded} busy={customShapesBusy} />
+            {customShapesBusy && (
+              <div className="mt-3">
+                <LoadingBlock />
+              </div>
+            )}
+            {customShapesError && (
+              <div className="mt-3">
+                <ErrorBlock title={t("validator.customShapesFailed")} detail={customShapesError} />
+              </div>
+            )}
+            {customShapes.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs text-ink-400">
+                  {t("validator.customShapesLoaded", { count: customShapes.length })}
+                </p>
+                <ul className="space-y-1">
+                  {customShapes.map((s, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-ink-700">
+                      <input
+                        type="checkbox"
+                        checked={s.selected}
+                        onChange={(e) => toggleCustomShapes(i, e.target.checked)}
+                      />
+                      <span className="flex-1">{s.label}</span>
+                      <button
+                        onClick={() => removeCustomShapes(i)}
+                        className="text-xs text-ink-400 hover:text-ledger-rust"
+                      >
+                        {t("validator.removeDomain")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {anySelected && (
+            <div className="mt-4">
+              <button
+                onClick={runValidation}
+                disabled={validating || anyLoading}
+                className="rounded bg-ink-900 px-4 py-2 text-sm font-medium text-ink-50 hover:bg-ink-800 disabled:opacity-50"
+              >
+                {validating ? t("validator.validating") : t("validator.runValidation")}
+              </button>
+              {validationError && (
+                <div className="mt-3">
+                  <ErrorBlock title={t("validator.validationFailed")} detail={validationError} />
+                </div>
               )}
             </div>
           )}
@@ -416,6 +536,17 @@ export function ValidatePage() {
           <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wide text-ink-400">
             {t("validator.step3")}
           </h2>
+          {report.engineWarnings.length > 0 && (
+            <div className="mb-4 rounded border border-signal/40 bg-signal/5 px-3 py-2 text-xs text-signal-dim">
+              <p className="font-medium">⚠️ {t("validator.engineWarningsTitle")}</p>
+              <p className="mt-1">{t("validator.engineWarningsHint")}</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                {report.engineWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <ValidationReportView report={report} />
         </section>
       )}

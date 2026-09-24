@@ -8,9 +8,47 @@ import {
   type JsonLdDocumentLoader,
   type OntologyTermLike,
 } from "@/validator-core";
+import { DataFactory } from "n3";
 import type { Quad } from "n3";
 import { loadDomainTerms, versionTagOf } from "./registryClient";
 import type { Artifact, DomainEntry, RegistryManifest, VocabTerm } from "@/types/registry";
+
+const RDFS_SUBCLASSOF = "http://www.w3.org/2000/01/rdf-schema#subClassOf";
+
+/**
+ * SHACL's sh:targetClass matching includes instances of *subclasses* of
+ * the named class (per the SHACL spec's class-based target semantics),
+ * but only insofar as the class hierarchy is actually present as
+ * rdfs:subClassOf triples in the graph being searched — see
+ * rdf-validate-shacl's getInstancesOf()/getSubClassesOf(), which look for
+ * those triples in the *data* graph specifically. Real-world instance
+ * data essentially never states its own class hierarchy (an EPCIS
+ * ObjectEvent instance has no reason to also assert
+ * "epcis:ObjectEvent rdfs:subClassOf epcis:EPCISEvent" itself), and a
+ * domain's SHACL shapes commonly target an abstract superclass precisely
+ * so one shape covers every concrete subtype — so without this, a shape
+ * targeting e.g. epcis:EPCISEvent silently never matches any
+ * epcis:ObjectEvent/epcis:AggregationEvent/... node at all, and
+ * validation of that shape is quietly skipped rather than run.
+ *
+ * This derives rdfs:subClassOf quads from a domain's own already-parsed
+ * ontology terms (VocabTerm.relations["rdfs:subClassOf"], populated by
+ * vocabParser.ts) — the same data the domain page's own type hierarchy
+ * display already uses — so they can be merged into the *data* graph
+ * before validation, making that subclass matching actually work for
+ * this app's own published domains. Callers should merge the result into
+ * dataQuads, not shapeQuads, to match where rdf-validate-shacl looks.
+ */
+export function buildClassHierarchyQuads(terms: VocabTerm[]): Quad[] {
+  const { namedNode, quad } = DataFactory;
+  const quads: Quad[] = [];
+  for (const term of terms) {
+    for (const superClassIri of term.relations["rdfs:subClassOf"] ?? []) {
+      quads.push(quad(namedNode(term.id), namedNode(RDFS_SUBCLASSOF), namedNode(superClassIri)));
+    }
+  }
+  return quads;
+}
 
 export interface ResolvedShapes {
   shapeQuads: Quad[];
@@ -18,6 +56,8 @@ export interface ResolvedShapes {
   estimated: boolean;
   /** Human labels of the artifact(s) actually used — SHACL filenames, or a note that shapes were inferred. */
   sourceLabels: string[];
+  /** rdfs:subClassOf quads from this domain's own ontology — see buildClassHierarchyQuads(). Merge into dataQuads. */
+  classHierarchyQuads: Quad[];
 }
 
 function toOntologyTermLike(term: VocabTerm): OntologyTermLike {
@@ -120,7 +160,7 @@ export async function fetchRdfWithContentNegotiation(
 export async function loadShaclArtifactQuads(artifact: Artifact, documentLoader?: JsonLdDocumentLoader): Promise<Quad[]> {
   const { text, contentType } = await fetchRdfWithContentNegotiation(artifact.source);
   const format = artifact.mediaType === "text/turtle" ? "turtle" : "jsonld";
-  const { quads } = await parseRdfText(text, format, contentType ?? undefined, documentLoader);
+  const { quads } = await parseRdfText(text, format, contentType ?? undefined, documentLoader, "shapes");
   return quads;
 }
 
@@ -149,11 +189,21 @@ export async function resolveShapesForDomain(
   const shaclArtifacts = findShaclArtifacts(domain, status, versionTag);
 
   if (shaclArtifacts.length > 0) {
-    const parsed = await Promise.all(shaclArtifacts.map((a) => loadShaclArtifactQuads(a, documentLoader)));
+    const [parsed, terms] = await Promise.all([
+      Promise.all(shaclArtifacts.map((a) => loadShaclArtifactQuads(a, documentLoader))),
+      // Real SHACL files constrain instance data, but say nothing about
+      // the class hierarchy itself — that ontology fact still has to come
+      // from the domain's own vocabulary/ontology artifacts. Best-effort:
+      // an unreachable ontology shouldn't block validation against the
+      // (already loaded) real shapes, just mean subclass-target shapes
+      // may under-match.
+      loadDomainTerms(domain, status, versionTag).catch(() => [] as VocabTerm[]),
+    ]);
     return {
       shapeQuads: parsed.flat(),
       estimated: false,
       sourceLabels: shaclArtifacts.map((a) => a.label),
+      classHierarchyQuads: buildClassHierarchyQuads(terms),
     };
   }
 
@@ -163,6 +213,7 @@ export async function resolveShapesForDomain(
     shapeQuads,
     estimated: true,
     sourceLabels: [`Inferred from the ${domain.label} ontology (no SHACL file published for this version)`],
+    classHierarchyQuads: buildClassHierarchyQuads(terms),
   };
 }
 

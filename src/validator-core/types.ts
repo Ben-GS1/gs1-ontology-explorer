@@ -36,6 +36,16 @@ export interface ValidationReport {
   conforms: boolean;
   results: ValidationResultItem[];
   counts: { violations: number; warnings: number; infos: number };
+  /**
+   * Engine-level notices that aren't SHACL validation results at all —
+   * e.g. a shape using a constraint type this engine can't evaluate (see
+   * shaclEngine.ts's stripUnsupportedConstraints()). Surfaced separately
+   * from `results` because these mean "part of the shapes graph was not
+   * checked", which is a materially different, more urgent thing to tell
+   * a user than "here's what SHACL found wrong with your data" — silently
+   * mixing the two would make an incomplete validation look complete.
+   */
+  engineWarnings: string[];
 }
 
 export interface ShapeSource {

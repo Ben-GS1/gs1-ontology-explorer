@@ -13,6 +13,26 @@ const MEDIA_TYPE_TO_KIND = {
 };
 
 /**
+ * Every response this Function returns depends on the manifest's current
+ * content — which artifact kinds/statuses exist for a domain, and which
+ * URLs they're published under. That can change at any time a new
+ * manifest is published (a file added, a version promoted/deprecated,
+ * etc.), independently of this Function's own code or deploy. Without an
+ * explicit Cache-Control header, a browser or intermediate CDN is free to
+ * cache any of these responses under its own heuristics — including a
+ * "not found, here's the app shell instead" response from *before* the
+ * manifest gained an entry a request now matches, which then keeps being
+ * served indefinitely even after the manifest is correctly updated. This
+ * bit us for real: /voc/rail/rail-context.jsonld kept returning the app
+ * shell in a browser well after the manifest was updated to include a
+ * matching `context` artifact for it, purely from a stale cached
+ * response — server-side re-testing against the live manifest at the
+ * time showed the correct 303 immediately. Applied to every branch below
+ * (200, 303, 404, 502) so this class of bug can't recur for any path.
+ */
+const NO_STORE = { "Cache-Control": "no-store" };
+
+/**
  * Single entry point for every public path under the resolver host, all
  * of which now live under the /voc prefix (https://ref.gs1.ch/voc/...).
  * Two distinct request shapes are handled here, both driven entirely by
@@ -61,14 +81,14 @@ async function resolve(request, context) {
   } catch (err) {
     context.error("manifest load failed", err);
     return rdfType
-      ? { status: 502, jsonBody: { error: "registry manifest unavailable" } }
+      ? { status: 502, headers: NO_STORE, jsonBody: { error: "registry manifest unavailable" } }
       : htmlShellResponse(502);
   }
 
   // Case 1: does this path match a known artifact's own public URL?
   const directArtifact = findArtifactByPublicPath(manifest, path);
   if (directArtifact) {
-    return { status: 303, headers: { Location: directArtifact.source, Vary: "Accept" } };
+    return { status: 303, headers: { Location: directArtifact.source, Vary: "Accept", ...NO_STORE } };
   }
 
   // Case 2: resolver shapes under a known domain.
@@ -94,7 +114,7 @@ async function resolve(request, context) {
 
   if (!domain) {
     return rdfType
-      ? { status: 404, jsonBody: { error: `unknown path '${path}'` } }
+      ? { status: 404, headers: NO_STORE, jsonBody: { error: `unknown path '${path}'` } }
       : htmlShellResponse(404);
   }
 
@@ -102,7 +122,11 @@ async function resolve(request, context) {
     const kind = MEDIA_TYPE_TO_KIND[rdfType] || "vocabulary";
     const artifact = pickArtifact(domain, kind);
     if (!artifact) {
-      return { status: 404, jsonBody: { error: `no ${kind} artifact published for domain '${domainSlug}'` } };
+      return {
+        status: 404,
+        headers: NO_STORE,
+        jsonBody: { error: `no ${kind} artifact published for domain '${domainSlug}'` },
+      };
     }
     // NOTE: per-term fragment addressing assumes the vocabulary publishes
     // term nodes at "<artifact.source>#<localName>". If your repository
@@ -112,7 +136,7 @@ async function resolve(request, context) {
     const location = hasExactlyOneExtraSegment ? `${artifact.source}#${encodeURIComponent(termName)}` : artifact.source;
     return {
       status: 303,
-      headers: { Location: location, Vary: "Accept" },
+      headers: { Location: location, Vary: "Accept", ...NO_STORE },
     };
   }
 
@@ -124,7 +148,7 @@ function htmlShellResponse(status) {
     const html = getAppShell();
     return {
       status,
-      headers: { "Content-Type": "text/html; charset=utf-8", Vary: "Accept" },
+      headers: { "Content-Type": "text/html; charset=utf-8", Vary: "Accept", ...NO_STORE },
       body: html,
     };
   } catch (err) {
@@ -135,7 +159,7 @@ function htmlShellResponse(status) {
     // loop.
     return {
       status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: { "Content-Type": "text/plain; charset=utf-8", ...NO_STORE },
       body: `app shell unavailable: ${err.message}`,
     };
   }

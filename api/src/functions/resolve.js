@@ -33,6 +33,31 @@ const MEDIA_TYPE_TO_KIND = {
 const NO_STORE = { "Cache-Control": "no-store" };
 
 /**
+ * CORS for the resolver, including the 303 redirects. Browsers check
+ * Access-Control-Allow-Origin on the redirect response itself before
+ * following it, so the GitHub Pages target already sending "*" is not
+ * enough: without this, cross-origin fetch() calls from the sites below
+ * to https://ref.gs1.ch/voc/... fail with a CORS error.
+ * Only the origins listed here are allowed; add more as needed.
+ */
+const ALLOWED_ORIGINS = new Set([
+  "https://gs1-epcis-reg.org",
+  "https://gs1-epcis-ds.org",
+]);
+
+function corsHeaders(request) {
+  const origin = request.headers.get("origin");
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Accept, Content-Type",
+    "Access-Control-Expose-Headers": "Location",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
+/**
  * Single entry point for every public path under the resolver host, all
  * of which now live under the /voc prefix (https://ref.gs1.ch/voc/...).
  * Two distinct request shapes are handled here, both driven entirely by
@@ -173,9 +198,21 @@ function safePathname(url) {
   }
 }
 
+async function resolveWithCors(request, context) {
+  const cors = corsHeaders(request);
+  if (request.method === "OPTIONS") {
+    return { status: 204, headers: { ...cors, Vary: "Origin" } };
+  }
+  const response = await resolve(request, context);
+  const headers = { ...cors, ...(response.headers || {}) };
+  // The response differs per Origin, so caches must key on it too.
+  headers.Vary = headers.Vary ? `${headers.Vary}, Origin` : "Origin";
+  return { ...response, headers };
+}
+
 app.http("resolve", {
   route: "resolve",
-  methods: ["GET"],
+  methods: ["GET", "OPTIONS"],
   authLevel: "anonymous",
-  handler: resolve,
+  handler: resolveWithCors,
 });

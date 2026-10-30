@@ -40,18 +40,19 @@ const NO_STORE = { "Cache-Control": "no-store" };
  * to https://ref.gs1.ch/voc/... fail with a CORS error.
  * Only the origins listed here are allowed; add more as needed.
  */
-const ALLOWED_ORIGINS = new Set([
-  "https://gs1-epcis-reg.org",
-  "https://gs1-epcis-ds.org",
-  "https://ref.gs1.ch"
-]);
+/*const ALLOWED_ORIGINS = new Set([
+*  "https://gs1-epcis-reg.org",
+* "https://gs1-epcis-ds.org",
+*  "https://ref.gs1.ch"
+*]);
+*/
 
 function corsHeaders(request) {
   const origin = request.headers.get("origin");
   if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
   return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
     "Access-Control-Allow-Headers": "Accept, Content-Type",
     "Access-Control-Expose-Headers": "Location",
     "Access-Control-Max-Age": "86400",
@@ -213,7 +214,7 @@ async function resolveWithCors(request, context) {
 
 app.http("resolve", {
   route: "resolve",
-  methods: ["GET", "OPTIONS"],
+  methods: ["GET", "HEAD", "OPTIONS"],
   authLevel: "anonymous",
   handler: resolveWithCors,
 });

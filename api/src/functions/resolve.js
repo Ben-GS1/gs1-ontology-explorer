@@ -36,28 +36,20 @@ const NO_STORE = { "Cache-Control": "no-store" };
  * CORS for the resolver, including the 303 redirects. Browsers check
  * Access-Control-Allow-Origin on the redirect response itself before
  * following it, so the GitHub Pages target already sending "*" is not
- * enough: without this, cross-origin fetch() calls from the sites below
- * to https://ref.gs1.ch/voc/... fail with a CORS error.
- * Only the origins listed here are allowed; add more as needed.
+ * enough: without this, cross-origin fetch() calls (e.g. from the JSON-LD
+ * Playground) to https://ref.gs1.ch/voc/... fail with a CORS error.
+ *
+ * This is a public, read-only, credential-free resolver, so the headers
+ * are sent unconditionally with "*" for every origin. Because the value
+ * no longer depends on the request's Origin, no "Vary: Origin" is needed.
  */
-/*const ALLOWED_ORIGINS = new Set([
-*  "https://gs1-epcis-reg.org",
-* "https://gs1-epcis-ds.org",
-*  "https://ref.gs1.ch"
-*]);
-*/
-
-function corsHeaders(request) {
-  const origin = request.headers.get("origin");
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return {};
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-    "Access-Control-Allow-Headers": "Accept, Content-Type",
-    "Access-Control-Expose-Headers": "Location",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "Accept, Content-Type",
+  "Access-Control-Expose-Headers": "Location",
+  "Access-Control-Max-Age": "86400",
+};
 
 /**
  * Single entry point for every public path under the resolver host, all
@@ -201,15 +193,14 @@ function safePathname(url) {
 }
 
 async function resolveWithCors(request, context) {
-  const cors = corsHeaders(request);
+  // CORS preflight: answer directly, no manifest lookup needed.
   if (request.method === "OPTIONS") {
-    return { status: 204, headers: { ...cors, Vary: "Origin" } };
+    return { status: 204, headers: { ...CORS_HEADERS } };
   }
   const response = await resolve(request, context);
-  const headers = { ...cors, ...(response.headers || {}) };
-  // The response differs per Origin, so caches must key on it too.
-  headers.Vary = headers.Vary ? `${headers.Vary}, Origin` : "Origin";
-  return { ...response, headers };
+  // CORS headers on every branch (200, 303, 404, 500, 502), so browsers
+  // can read error responses instead of reporting an opaque CORS failure.
+  return { ...response, headers: { ...CORS_HEADERS, ...(response.headers || {}) } };
 }
 
 app.http("resolve", {

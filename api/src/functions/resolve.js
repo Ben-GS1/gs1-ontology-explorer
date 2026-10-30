@@ -43,6 +43,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const ALLOWED_ORIGINS = new Set([
   "https://gs1-epcis-reg.org",
   "https://gs1-epcis-ds.org",
+  "https://ref.gs1.ch"
 ]);
 
 function corsHeaders(request) {

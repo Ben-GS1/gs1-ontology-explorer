@@ -13,6 +13,7 @@
     { "route": "/", "redirect": "/voc/", "statusCode": 302 },
 
     { "route": "/voc", "rewrite": "/index.html" },
+    { "route": "/voc/", "rewrite": "/index.html" },
     { "route": "/voc/search", "rewrite": "/index.html" },
     { "route": "/voc/sector/*", "rewrite": "/index.html" },
 
@@ -28,16 +29,13 @@
     ".json": "application/json"
   },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://gs1-switzerland.github.io https://*.github.io; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests",
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://*.github.io; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests",
     "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
     "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Resource-Policy": "same-site"
-  },
-  "responseOverrides": {
-    "404": { "redirect": "/voc/", "statusCode": 302 }
+    "Cross-Origin-Resource-Policy": "cross-origin"
   }
 }

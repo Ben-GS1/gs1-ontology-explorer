@@ -6,6 +6,9 @@ import { sectorByCode } from "@/config/sectors";
 import { useDomain, useDomains, useManifest, useSectors, useTermAtVersion } from "@/hooks/useRegistry";
 import { domainDisplayLabel } from "@/config/domains";
 import { resolveTypeDefinitionUrl } from "@/lib/vocabLinks";
+import { describeLanguage, languagesIn, localizeTerm } from "@/lib/localized";
+import { useContentLanguages } from "@/hooks/useContentLanguage";
+import { ContentLanguageSelect } from "@/components/ContentLanguageSelect";
 import { describeUnitCode } from "@/lib/unitCodes";
 import { VersionSelect, versionOptionFromKey } from "@/components/VersionSelect";
 import { VersionCompare } from "@/components/VersionCompare";
@@ -18,8 +21,9 @@ import { LoadingBlock, ErrorBlock } from "@/components/StateBlocks";
 export function TermPage() {
   const { domainSlug = "", termName = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t } = useTranslation(["common", "sectors", "errors"]);
+  const { t, i18n } = useTranslation(["common", "sectors", "errors"]);
   const [showRaw, setShowRaw] = useState(false);
+  const contentLanguages = useContentLanguages();
 
   // If arriving from the domain-level diff view's "Changed" list
   // (?compareA=current&compareB=deprecated:v0.1.2), open the compare panel
@@ -89,6 +93,12 @@ export function TermPage() {
     return <ErrorBlock title={t("termNotFound", { ns: "errors", term: termName, domain: domainSlug })} />;
   }
 
+  // Labels/definitions are shown in the reader's language where the vocabulary
+  // provides it (see useContentLanguages); `translations` lists every language.
+  const { label, description } = localizeTerm(term, contentLanguages);
+  const translationLanguages = languagesIn(term.labels, term.descriptions);
+  const uiLang = i18n.resolvedLanguage ?? "en";
+
   const sector = domain.sectorCode ? sectorByCode(sectorsQuery.data ?? [], domain.sectorCode) : undefined;
   const domainLabel = domainDisplayLabel(domainsQuery.data ?? [], domain.slug, domain.label);
   const sectorLabel = sector ? t(`sector.${sector.codeValue}`, { ns: "sectors" }) : "";
@@ -97,7 +107,7 @@ export function TermPage() {
   return (
     <div>
       <Helmet>
-        <title>{`${term.label} — ${domainLabel} — ${t("app.title")}`}</title>
+        <title>{`${label.text} — ${domainLabel} — ${t("app.title")}`}</title>
         <link rel="alternate" type="application/ld+json" href={term.sourceArtifactUrl} />
       </Helmet>
       <Breadcrumbs
@@ -105,17 +115,20 @@ export function TermPage() {
           { label: t("breadcrumb.home"), to: "/" },
           ...(sector ? [{ label: sectorLabel, to: `/sector/${sector.codeValue.toLowerCase()}` }] : []),
           { label: domainLabel, to: `/${domain.slug}` },
-          { label: term.label },
+          { label: label.text },
         ]}
       />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-2xl font-semibold text-ink-900">{term.label}</h1>
+          <h1 lang={label.lang} className="font-display text-2xl font-semibold text-ink-900">
+            {label.text}
+          </h1>
           {term.termStatus && <StatusBadge status={term.termStatus} />}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+          <ContentLanguageSelect languages={translationLanguages} />
           <span className="text-xs text-ink-400">{t("term.viewingVersion")}</span>
           <VersionSelect
             domain={domain}
@@ -154,8 +167,53 @@ export function TermPage() {
         </div>
       )}
 
-      {term.description && (
-        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-700">{term.description}</p>
+      {description && (
+        <p lang={description.lang} className="mt-4 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-ink-700">
+          {description.text}
+        </p>
+      )}
+
+      {translationLanguages.length > 1 && (
+        <section className="mt-6" aria-labelledby="term-translations">
+          <h2 id="term-translations" className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+            {t("term.translations")}
+          </h2>
+          <div className="mt-2 overflow-x-auto rounded border border-ink-100 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-ink-100 text-xs text-ink-400">
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    {t("term.translationLanguage")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    {t("term.translationLabel")}
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    {t("term.translationDefinition")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {translationLanguages.map((lang) => {
+                  const shown = lang === label.lang;
+                  return (
+                    <tr key={lang} className={`align-top ${shown ? "bg-ink-50" : ""}`}>
+                      <th scope="row" className="whitespace-nowrap px-3 py-2 font-normal text-ink-500">
+                        {describeLanguage(lang, uiLang)} <span className="term-id text-xs text-ink-400">{lang}</span>
+                      </th>
+                      <td lang={lang} className="px-3 py-2 text-ink-800">
+                        {term.labels?.[lang] ?? "—"}
+                      </td>
+                      <td lang={lang} className="whitespace-pre-line px-3 py-2 text-ink-700">
+                        {term.descriptions?.[lang] ?? "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       <dl className="mt-8 grid grid-cols-1 gap-x-8 gap-y-4 rounded border border-ink-100 bg-white p-4 sm:grid-cols-2">
@@ -173,13 +231,38 @@ export function TermPage() {
             <dd className="term-id mt-1 text-sm text-ink-700">{describeUnitCode(term.unitCode)}</dd>
           </div>
         )}
+        {term.versionInfo && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.versionInfo")}</dt>
+            <dd className="term-id mt-1 text-sm text-ink-700">{term.versionInfo}</dd>
+          </div>
+        )}
+        {term.created && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.created")}</dt>
+            <dd className="term-id mt-1 text-sm text-ink-700">{term.created}</dd>
+          </div>
+        )}
+        {term.license && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-400">{t("term.license")}</dt>
+            <dd className="term-id mt-1 break-all text-sm text-ink-700">
+              <IriValue iri={term.license} />
+            </dd>
+          </div>
+        )}
         {Object.entries(term.relations).map(([pred, values]) => (
           <div key={pred}>
-            <dt className="term-id text-xs font-semibold uppercase tracking-wide text-ink-400">{pred}</dt>
+            <dt
+              title={pred}
+              className="text-xs font-semibold uppercase tracking-wide text-ink-400"
+            >
+              {t(`predicate.${pred.slice(pred.indexOf(":") + 1)}`, { defaultValue: pred })}
+            </dt>
             <dd className="term-id mt-1 space-y-0.5 text-sm text-ink-700">
               {values.map((v) => (
                 <div key={v} className="break-all">
-                  {v}
+                  <IriValue iri={v} />
                 </div>
               ))}
             </dd>
@@ -228,5 +311,23 @@ export function TermPage() {
         />
       )}
     </div>
+  );
+}
+
+/** An IRI (or unexpandable CURIE) shown as a link to its definition where one can be derived, otherwise as plain text. */
+function IriValue({ iri }: { iri: string }) {
+  const { t } = useTranslation("common");
+  const href = resolveTypeDefinitionUrl(iri);
+  if (!href) return <>{iri}</>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      title={t("term.externalLink") ?? undefined}
+      className="hover:text-signal-dim hover:underline"
+    >
+      {iri}
+    </a>
   );
 }

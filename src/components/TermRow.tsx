@@ -1,7 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Artifact, VocabTerm } from "@/types/registry";
 import { buildVersionQuery } from "@/lib/registryClient";
+import { localizeTerm } from "@/lib/localized";
+import { appendContentLanguage, CONTENT_LANG_PARAM, useContentLanguages } from "@/hooks/useContentLanguage";
 import { StatusBadge } from "./StatusBadge";
 
 export function TermRow({
@@ -17,24 +19,35 @@ export function TermRow({
   versionTag?: string;
 }) {
   const { t } = useTranslation("common");
+  const [searchParams] = useSearchParams();
+  const contentLanguages = useContentLanguages();
+  const { label, description } = localizeTerm(term, contentLanguages);
   const primaryType = term.types.find((ty) => !ty.startsWith("owl:")) ?? term.types[0];
 
   return (
     <Link
-      to={`/${term.domainSlug}/${term.localName}${buildVersionQuery(status, versionTag)}`}
+      to={`/${term.domainSlug}/${term.localName}${appendContentLanguage(
+        buildVersionQuery(status, versionTag),
+        searchParams.get(CONTENT_LANG_PARAM)
+      )}`}
       className="group block rounded border border-ink-100 bg-white px-4 py-3 shadow-card transition hover:border-signal/50"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-display text-[15px] font-medium text-ink-900 group-hover:text-signal-dim">
-              {term.label}
+            <h3
+              lang={label.lang}
+              className="truncate font-display text-[15px] font-medium text-ink-900 group-hover:text-signal-dim"
+            >
+              {label.text}
             </h3>
             {term.termStatus === "deprecated" && <StatusBadge status="deprecated" />}
           </div>
           <p className="term-id mt-0.5 truncate text-xs text-ink-400">{term.localName}</p>
-          {term.description && (
-            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-500">{term.description}</p>
+          {description && (
+            <p lang={description.lang} className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
+              {description.text}
+            </p>
           )}
         </div>
         {primaryType && (

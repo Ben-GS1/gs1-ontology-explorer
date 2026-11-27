@@ -1,0 +1,109 @@
+{
+  "@context": [
+    "https://example.org/remote-context-that-must-never-be-fetched.jsonld",
+    {
+      "@version": 1.1,
+      "gs1": "https://ref.gs1.org/voc/",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "label": { "@id": "rdfs:label", "@container": "@language" },
+      "comment": { "@id": "rdfs:comment", "@container": "@language" },
+      "title": { "@id": "dct:title", "@container": "@language" },
+      "description": { "@id": "dct:description", "@container": "@language" },
+      "subClassOf": { "@id": "rdfs:subClassOf", "@type": "@id" },
+      "domain": { "@id": "rdfs:domain", "@type": "@id" },
+      "range": { "@id": "rdfs:range", "@type": "@id" },
+      "inScheme": { "@id": "skos:inScheme", "@type": "@id" },
+      "isDefinedBy": { "@id": "rdfs:isDefinedBy", "@type": "@id" },
+      "usedWithLinkType": { "@id": "sai:usedWithLinkType", "@type": "@id" },
+      "termStatus": "sw:term_status",
+      "versionInfo": "owl:versionInfo",
+      "created": { "@id": "dct:created", "@type": "xsd:date" },
+      "license": { "@id": "dct:license", "@type": "@id" },
+      "seeAlso": { "@id": "rdfs:seeAlso", "@type": "@id" }
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "gs1:",
+      "@type": ["owl:Ontology"],
+      "title": { "en": "GS1 Test Vocabulary", "de": "GS1 Testvokabular" },
+      "description": { "en": "A vocabulary used for testing.", "de": "Ein Vokabular für Tests." },
+      "versionInfo": "3.1",
+      "created": "2025-01-15",
+      "license": { "@id": "https://creativecommons.org/licenses/by/4.0/" }
+    },
+    {
+      "@id": "gs1:Place",
+      "@type": ["owl:Class", "rdfs:Class"],
+      "label": { "en": "Place", "de": "Ort", "fr": "Lieu" },
+      "comment": {
+        "en": "A physical location.",
+        "de": "Ein physischer Standort.",
+        "fr": "Un emplacement physique."
+      },
+      "subClassOf": "gs1:Thing",
+      "isDefinedBy": { "@id": "gs1:" },
+      "inScheme": "gs1:LocationScheme",
+      "termStatus": "stable",
+      "versionInfo": "1.2",
+      "created": { "@type": "xsd:date", "@value": "2024-05-01" },
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "seeAlso": ["gs1:GeoCoordinates", { "@id": "https://schema.org/Place" }]
+    },
+    {
+      "@id": "gs1:Place",
+      "label": { "it": "Luogo" },
+      "comment": { "it": "Una posizione fisica." }
+    },
+    {
+      "@id": "gs1:geo",
+      "@type": ["owl:DatatypeProperty", "rdf:Property"],
+      "label": { "en": "Geo coordinates", "de-CH": "Geokoordinaten" },
+      "domain": { "@id": "gs1:Place" },
+      "range": "xsd:string",
+      "usedWithLinkType": ["gs1:geoLink"],
+      "termStatus": "stable"
+    },
+    {
+      "@id": "gs1:legacyTerm",
+      "@type": "owl:Class",
+      "title": { "en": "Legacy term", "de": "Altbegriff" },
+      "description": { "en": "Only described via dct:title / dct:description.", "de": "Nur über dct:title / dct:description beschrieben." },
+      "termStatus": "deprecated"
+    },
+    {
+      "@id": "gs1:mixedForms",
+      "@type": "owl:Class",
+      "label": [
+        { "@language": "en", "@value": "Mixed forms" },
+        { "@language": "de", "@value": "Gemischte Formen" }
+      ],
+      "comment": {
+        "en": ["First paragraph.", "Second paragraph."],
+        "de": { "@value": "Ein Absatz." }
+      }
+    },
+    {
+      "@id": "gs1:untagged",
+      "@type": "owl:Class",
+      "label": "Untagged label",
+      "comment": "Untagged comment."
+    },
+    {
+      "@id": "gs1:bothPredicates",
+      "@type": "owl:Class",
+      "rdfs:label": { "@language": "en", "@value": "From rdfs:label" },
+      "title": { "en": "Ignored: rdfs:label wins for en", "de": "Aus dct:title" }
+    },
+    {
+      "@id": "gs1:germanOnly",
+      "@type": "owl:Class",
+      "label": { "de": "Nur Deutsch" },
+      "comment": { "de": "Nur eine deutsche Definition." }
+    },
+    {
+      "@id": "gs1:noLabel",
+      "@type": "owl:Class"
+    }
+  ]
+}

@@ -16,6 +16,52 @@ function term(overrides: Partial<VocabTerm>): VocabTerm {
   };
 }
 
+describe("buildFieldRows — translations and extra metadata", () => {
+  it("flags a changed translation even when the English text is identical", () => {
+    const a = term({ label: "Geo", labels: { en: "Geo", de: "Geo alt" } });
+    const b = term({ label: "Geo", labels: { en: "Geo", de: "Geo neu" } });
+    const rows = buildFieldRows(a, b);
+
+    expect(rows.find((r) => r.field === "label")!.changed).toBe(false);
+    const de = rows.find((r) => r.field === "label [de]")!;
+    expect(de.changed).toBe(true);
+    expect([de.a, de.b]).toEqual(["Geo alt", "Geo neu"]);
+  });
+
+  it("flags a newly added translation, showing an em dash for the version without it", () => {
+    const a = term({ descriptions: { en: "Text" }, description: "Text" });
+    const b = term({ descriptions: { en: "Text", fr: "Texte" }, description: "Text" });
+    const fr = buildFieldRows(a, b).find((r) => r.field === "description [fr]")!;
+    expect(fr.a).toBe("—");
+    expect(fr.b).toBe("Texte");
+    expect(fr.changed).toBe(true);
+  });
+
+  it("does not repeat the default language as a separate row", () => {
+    const a = term({ label: "Nur Deutsch", labels: { de: "Nur Deutsch" } });
+    const rows = buildFieldRows(a, a);
+    expect(rows.some((r) => r.field === "label [de]")).toBe(false);
+    expect(rows.some((r) => r.field === "label [en]")).toBe(false);
+  });
+
+  it("reports changes in versionInfo, created and license", () => {
+    const a = term({ versionInfo: "1.0", created: "2024-01-01", license: "https://a.example/l" });
+    const b = term({ versionInfo: "1.1", created: "2024-01-01", license: "https://b.example/l" });
+    const rows = buildFieldRows(a, b);
+    expect(rows.find((r) => r.field === "versionInfo")!.changed).toBe(true);
+    expect(rows.find((r) => r.field === "created")!.changed).toBe(false);
+    expect(rows.find((r) => r.field === "license")!.changed).toBe(true);
+  });
+
+  it("makes diffTermSets report a translation-only change as 'changed'", () => {
+    const a = term({ labels: { en: "Geo", de: "Alt" } });
+    const b = term({ labels: { en: "Geo", de: "Neu" } });
+    const diff = diffTermSets([a], [b]);
+    expect(diff.changed).toHaveLength(1);
+    expect(diff.unchangedCount).toBe(0);
+  });
+});
+
 describe("buildFieldRows", () => {
   it("marks unchanged fields as unchanged and changed fields as changed", () => {
     const a = term({ label: "Geo coordinates", description: "Old description" });

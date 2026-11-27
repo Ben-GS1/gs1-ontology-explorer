@@ -1,4 +1,5 @@
 import type { VocabTerm } from "@/types/registry";
+import { DEFAULT_CONTENT_LANGUAGE, languagesIn, UNDETERMINED } from "./localized";
 
 export interface FieldRow {
   field: string;
@@ -14,9 +15,27 @@ export function buildFieldRows(a: VocabTerm | undefined, b: VocabTerm | undefine
 
   push("label", a?.label ?? "—", b?.label ?? "—");
   push("description", a?.description ?? "—", b?.description ?? "—");
+
+  // The two rows above only cover the default language, so a changed (or
+  // newly added) translation would otherwise go unnoticed. Add one row per
+  // further language — skipping a language the rows above already show.
+  const pushTranslations = (field: "label" | "description", plural: "labels" | "descriptions") => {
+    for (const lang of languagesIn(a?.[plural], b?.[plural])) {
+      if (lang === DEFAULT_CONTENT_LANGUAGE || lang === UNDETERMINED) continue;
+      const av = a?.[plural]?.[lang];
+      const bv = b?.[plural]?.[lang];
+      if (av !== undefined && av === a?.[field] && bv !== undefined && bv === b?.[field]) continue;
+      push(`${field} [${lang}]`, av ?? "—", bv ?? "—");
+    }
+  };
+  pushTranslations("label", "labels");
+  pushTranslations("description", "descriptions");
   push("type", (a?.types ?? []).slice().sort().join(", ") || "—", (b?.types ?? []).slice().sort().join(", ") || "—");
   push("termStatus", a?.termStatus ?? "—", b?.termStatus ?? "—");
   push("unitCode", a?.unitCode ?? "—", b?.unitCode ?? "—");
+  push("versionInfo", a?.versionInfo ?? "—", b?.versionInfo ?? "—");
+  push("created", a?.created ?? "—", b?.created ?? "—");
+  push("license", a?.license ?? "—", b?.license ?? "—");
 
   const predicates = new Set([...Object.keys(a?.relations ?? {}), ...Object.keys(b?.relations ?? {})]);
   for (const pred of Array.from(predicates).sort()) {

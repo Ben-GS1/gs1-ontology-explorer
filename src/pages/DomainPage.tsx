@@ -6,6 +6,10 @@ import { sectorByCode } from "@/config/sectors";
 import { useDomain, useDomainMetadata, useDomainTermsAtVersion, useDomains, useSectors } from "@/hooks/useRegistry";
 import { domainDisplayLabel } from "@/config/domains";
 import { deprecatedVersionTags, versionTagOf, type VersionOption } from "@/lib/registryClient";
+import { languagesIn, pickLocalized } from "@/lib/localized";
+import { termMatchesQuery } from "@/lib/search";
+import { useContentLanguages } from "@/hooks/useContentLanguage";
+import { ContentLanguageSelect } from "@/components/ContentLanguageSelect";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ArtifactList } from "@/components/ArtifactList";
 import { TermRow } from "@/components/TermRow";
@@ -31,17 +35,24 @@ export function DomainPage() {
   const effectiveVersionTag = status === "deprecated" ? versionTag ?? versionTags[0] : undefined;
   const termsQuery = useDomainTermsAtVersion(domain, status, effectiveVersionTag);
 
+  const contentLanguages = useContentLanguages();
+
+  // Languages in which this domain's terms are available, for the language picker.
+  const availableLanguages = useMemo(
+    () => languagesIn(...(termsQuery.data ?? []).flatMap((term) => [term.labels, term.descriptions])),
+    [termsQuery.data]
+  );
+
   const filtered = useMemo(() => {
     const list = termsQuery.data ?? [];
     if (!query.trim()) return list;
-    const q = query.toLowerCase();
-    return list.filter(
-      (term) =>
-        term.label.toLowerCase().includes(q) ||
-        term.localName.toLowerCase().includes(q) ||
-        term.description?.toLowerCase().includes(q)
-    );
+    const q = query.trim().toLowerCase();
+    // Matches in any language, not just the one currently displayed.
+    return list.filter((term) => termMatchesQuery(term, q));
   }, [termsQuery.data, query]);
+
+  const metaDescription =
+    pickLocalized(meta.data?.descriptions, contentLanguages)?.text ?? meta.data?.description;
 
   if (isLoading) return <LoadingBlock />;
   if (isError) return <ErrorBlock title={t("manifestLoadFailed", { ns: "errors" })} />;
@@ -79,12 +90,12 @@ export function DomainPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">
-            {meta.data?.title ?? domainLabel}
+            {pickLocalized(meta.data?.titles, contentLanguages)?.text ?? meta.data?.title ?? domainLabel}
           </h1>
           <p className="term-id mt-1 text-xs text-ink-400">/{domain.slug}</p>
-          {(meta.data?.description ?? domain.description) && (
+          {(metaDescription ?? domain.description) && (
             <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-500">
-              {meta.data?.description ?? domain.description}
+              {metaDescription ?? domain.description}
             </p>
           )}
           {meta.data?.version && (
@@ -96,6 +107,7 @@ export function DomainPage() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <ContentLanguageSelect languages={availableLanguages} />
           <div className="flex gap-1 rounded border border-ink-100 bg-white p-1 text-xs">
             {availableStatuses.map((s) => (
               <button

@@ -390,7 +390,19 @@ tested against (`src/lib/__tests__/vocabParser.test.ts`), the **real**
 `gs1RailVoc.jsonld` payload, and correctly handles:
 
 - `@graph`-wrapped documents
-- multi-language literal objects (`{"@language":"en","@value":"…"}`)
+- multi-language literals in every JSON-LD form: `{"@language":"en","@value":"…"}`
+  objects (also as arrays) and **language maps** (`"label": {"en": "…", "de": "…"}`,
+  i.e. terms defined with `"@container": "@language"`) — all translations of
+  `rdfs:label` / `skos:prefLabel` / `dct:title` and `rdfs:comment` /
+  `skos:definition` / `dct:description` are kept (`VocabTerm.labels` /
+  `descriptions`, keyed by lower-cased BCP 47 tag; untagged text under `und`)
+- predicates written as a CURIE (`rdfs:label`), as the **compact term of a
+  remote `@context`** (`label`, `comment`, `title`, `description`, `subClassOf`,
+  `domain`, `range`, `inScheme`, `isDefinedBy`, `usedWithLinkType`,
+  `termStatus`, `versionInfo`, `created`, `license`, `seeAlso`) or fully
+  expanded — each is declared once in `vocabParser.ts` (`keyAliases()`) and
+  always surfaced under its canonical CURIE, so `domain` and `rdfs:domain`
+  end up in the same place (`VocabTerm.relations["rdfs:domain"]`)
 - both array and single-value `@type`
 - compact IRIs / CURIEs (`"rail:geo"`) expanded to full IRIs using the
   document's own inline `@context` prefix definitions — **without**
@@ -398,6 +410,10 @@ tested against (`src/lib/__tests__/vocabParser.test.ts`), the **real**
   `ref.gs1.org` or another upstream context host is slow or unreachable
 - the GS1-specific `sw:term_status` extension (`stable` / `deprecated` / …),
   surfaced as a badge on term cards and detail pages
+- per-term `owl:versionInfo`, `dct:created` and `dct:license`, shown on the
+  term page; relation IRIs (sub-class of, domain, range, in scheme, defined
+  by, used with link type, see also) are labelled readably and linked where
+  a definition page can be derived
 - separating the ontology/vocabulary header node (`voaf:Vocabulary` /
   `owl:Ontology`, i.e. the file's own title/version/license) from the
   browsable terms it contains
@@ -441,13 +457,28 @@ hard-coded UI text in JSX. Namespaces:
 
 Adding a language later is: drop `public/locales/<lng>/*.json` files with
 the same keys, add the code to `SUPPORTED_LANGUAGES` in `src/config/env.ts`.
-No component changes required. Vocabulary *content* itself (labels/
-descriptions from the JSON-LD) is rendered as-is in whatever language the
-source file provides — if you want localized vocabulary content, publish
-`rdfs:label`/`rdfs:comment` as language-tagged arrays
-(`[{"@language":"en",...},{"@language":"de",...}]`); the parser already
-resolves the first available literal and is a natural place to add
-`i18n.language`-aware selection later.
+No component changes required.
+
+**Vocabulary content is translated independently of the UI.** Labels and
+definitions are shown in the reader's language wherever the vocabulary
+provides it, even though the UI itself is English-only. The language is
+chosen, in this order, from:
+
+1. `?lng=de` in the URL (set by the *Definition language* picker on the
+   domain and term pages; carried along when navigating from a term list to a
+   term page, so a shared link keeps its language);
+2. the browser's language preference list (`navigator.languages`);
+3. English, then untagged text, then whatever is available.
+
+A regional preference matches its base language and vice versa (`de-CH` ↔ `de`).
+The term page additionally lists **every** translation side by side
+(*Translations* table), search matches labels/definitions in all languages,
+and the version-compare view reports a changed translation even when the
+English text is identical. The logic lives in `src/lib/localized.ts`
+(`pickLocalized`, `localizeTerm`) and `src/hooks/useContentLanguage.ts`.
+
+Publish translations as language maps (`"label": {"en": "…", "de": "…"}`) or
+as `{"@language","@value"}` literals — see section 3.
 
 ---
 

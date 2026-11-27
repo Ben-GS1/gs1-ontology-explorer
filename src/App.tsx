@@ -8,7 +8,6 @@ import { TermPage } from "@/pages/TermPage";
 import { SearchPage } from "@/pages/SearchPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { LoadingBlock } from "@/components/StateBlocks";
-import { APP_VERSION } from "@/config/version";
 
 // Lazy-loaded: pulls in the SHACL validation engine (n3, jsonld,
 // rdf-validate-shacl) — a substantial dependency tree that most visitors
@@ -86,7 +85,6 @@ export function App() {
       </main>
       <footer className="border-t border-ink-100 py-8 text-center text-xs text-ink-400">
         GS1 Switzerland — definitions maintained and versioned on GitHub.
-        <span className="ml-2 text-ink-300">v{APP_VERSION}</span>
       </footer>
     </div>
   );
